@@ -14,7 +14,9 @@ from precinctmap.cli_ingest import ingest
 from precinctmap.cli_parcels import addresses_app, parcels_app
 from precinctmap.cli_serve import serve
 from precinctmap.config import load_settings
-from precinctmap.io.db import StoreLockedError, close_all, get_connection
+from precinctmap.ingest.errors import IngestError
+from precinctmap.io.db import StoreLockedError, StoreUnavailableError, close_all, get_connection
+from precinctmap.registry.store import BoundaryError
 
 log = logging.getLogger("precinctmap")
 
@@ -104,6 +106,12 @@ def main() -> None:
     except StoreLockedError as exc:
         log.error("%s", exc)
         sys.exit(2)
+    except (IngestError, BoundaryError, StoreUnavailableError, FileNotFoundError) as exc:
+        # Expected failures (bad input, staging state, missing files): the message says what to
+        # do, so no traceback unless --verbose asked for one.
+        log.error("%s", exc)
+        log.debug("details", exc_info=exc)
+        sys.exit(1)
     except Exception:
         log.exception("precinctmap failed: %s", " ".join(sys.argv[1:]))
         sys.exit(1)

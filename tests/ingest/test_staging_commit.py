@@ -163,3 +163,12 @@ def test_reprocess_requires_an_ingested_file(with_precincts, settings, tmp_path)
     path = sheet_2025().write(tmp_path / GENERAL)
     with pytest.raises(StagingError, match="needs an active ingested file"):
         stage_file(with_precincts, settings, path, reprocess=True)
+
+
+def test_committed_batch_missing_from_the_store_is_an_error(with_precincts, settings, tmp_path):
+    """A staging folder copied from another machine must not pass for a loaded election."""
+    staged = stage_file(with_precincts, settings, sheet_2025().write(tmp_path / GENERAL))
+    commit_staging(with_precincts, settings, staged.staging_id)
+    with_precincts.execute("DELETE FROM source_files")  # this store never loaded it
+    with pytest.raises(StagingError, match="marked committed, but this store doesn't have"):
+        commit_staging(with_precincts, settings, staged.staging_id)

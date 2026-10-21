@@ -182,6 +182,8 @@ def commit_parcels(
     if not (directory / "manifest.json").exists():
         raise StagingError(f"no parcel staging batch {staging_id}")
     m = json.loads((directory / "manifest.json").read_text())
+    if m["status"] == "committed":
+        return _recommit(con, staging_id, m)
     if m["status"] != "ready":
         raise StagingError(f"{staging_id} is {m['status']}; see {directory / 'report.txt'}")
     source = Path(m["source"])
@@ -207,6 +209,25 @@ def commit_parcels(
         else ("; reprocessed" if old[0] == m["sha256"] else f"; superseded {old[1]}")
     )
     return f"{m['row_counts']['parcels']:,} parcels, {stats:,} area statistics{replaced}"
+
+
+def _recommit(con: duckdb.DuckDBPyConnection, staging_id: str, m: dict[str, Any]) -> str:
+    """A batch already marked committed: a no-op if this store has the file, else say why not.
+
+    The manifest lives in data/staging/ and the store is data/precinctmap.duckdb; copying
+    data/ between machines (or resetting the store) can leave one without the other.
+    """
+    active = con.execute(
+        "SELECT 1 FROM parcel_files WHERE file_id = ? AND status = 'active'", [m["sha256"]]
+    ).fetchone()
+    if active:
+        return "already committed"
+    raise StagingError(
+        f"{staging_id} is marked committed, but this store doesn't have {m['filename']} loaded"
+        " (the staging folder was probably copied from another machine, or the store was reset)."
+        f" Re-stage it with `precinctmap parcels review {m['source']} --as-of {m['as_of']}`,"
+        " then commit the staging id it prints."
+    )
 
 
 def _commit(

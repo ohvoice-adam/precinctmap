@@ -28,6 +28,7 @@ _ALL = "count(*)"
 _BLD = "count(*) FILTER (WHERE building_value > 0)"
 _TOT = "count(*) FILTER (WHERE appraised_total > 0)"
 _GRD = "count(grade_score)"
+_OWN = "count(owner_address_differs)"  # parcels with an owner address on file
 
 
 def _m(metric: str, label: str, kind: str, value: str, n: str, description: str) -> Metric:
@@ -104,12 +105,29 @@ METRICS: tuple[Metric, ...] = (
         "Owner name contains LLC.",
     ),
     _m(
+        "llc_owned_share",
+        "Owned by an LLC, share",
+        "share",
+        "avg(owner_llc::INTEGER)",
+        _ALL,
+        "Parcels whose owner name contains LLC / residential parcels.",
+    ),
+    _m(
         "owner_elsewhere",
         "Owner's address is elsewhere",
         "count",
         "count(*) FILTER (WHERE owner_address_differs)",
         _ALL,
         "Owner's address differs from the parcel's (house number or ZIP).",
+    ),
+    _m(
+        "owner_elsewhere_share",
+        "Owner's address is elsewhere, share",
+        "share",
+        "avg(owner_address_differs::INTEGER)",  # NULL (no owner address) is left out
+        _OWN,
+        "Owner's address differs from the parcel's / parcels with an owner address on file"
+        " (about 5% have none and are left out).",
     ),
     _m(
         "median_building_value",

@@ -53,6 +53,7 @@ uv run precinctmap aggregate report                  # reconciliation status and
 uv run precinctmap addresses load data/samples/VOTERFILE.TXT --as-of D [--commit]   # de-identified address table
 uv run precinctmap parcels review data/samples/Parcel.csv --as-of D [--reprocess]  # locate parcels, print report
 uv run precinctmap parcels commit <prc-id> [--replace]                            # commit a reviewed parcel batch
+uv run precinctmap parcels stats                     # rebuild area statistics (after adding a measure)
 uv run precinctmap parcels status
 uv run precinctmap census fetch --year 2024 --as-of D           # ACS summary-file tables, county rows only (no API key)
 uv run precinctmap census load --year 2024 --as-of D [--commit] # allocate to every geography; review, then commit

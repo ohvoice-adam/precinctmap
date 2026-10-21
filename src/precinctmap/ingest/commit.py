@@ -53,7 +53,16 @@ def commit_staging(
     directory, m = _load_manifest(settings, staging_id)
     election = m["election"]
     if m["status"] == "committed":
-        return CommitResult("noop", election["election_id"], m["sha256"], "already committed")
+        loaded = con.execute(
+            "SELECT 1 FROM source_files WHERE file_id = ?", [m["sha256"]]
+        ).fetchone()
+        if loaded:
+            return CommitResult("noop", election["election_id"], m["sha256"], "already committed")
+        raise StagingError(
+            f"{staging_id} is marked committed, but this store doesn't have {m['filename']}"
+            " (the staging folder was probably copied from another machine, or the store was"
+            " reset). Re-stage the file with `precinctmap ingest <file> --review`, then commit."
+        )
     if m["status"] != "ready":
         raise StagingError(f"{staging_id} is {m['status']}; see {directory / 'report.txt'}")
     source = directory / m["source_copy"]

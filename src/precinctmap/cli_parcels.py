@@ -8,9 +8,11 @@ from typing import Annotated
 import typer
 
 from precinctmap.config import load_settings
+from precinctmap.ingest.errors import StagingError
 from precinctmap.io.db import get_connection
 from precinctmap.parcels.ingest import commit_parcels, load_addresses, stage_parcels, staging_dir
 from precinctmap.parcels.report import render
+from precinctmap.parcels.stats import materialize_stats
 
 addresses_app = typer.Typer(no_args_is_help=True, help="De-identified address -> precinct table.")
 parcels_app = typer.Typer(no_args_is_help=True, help="Auditor parcels located in precincts.")
@@ -80,6 +82,19 @@ def parcels_commit(
     settings = load_settings()
     detail = commit_parcels(get_connection(settings.db_path), settings, staging_id, replace)
     typer.echo(f"committed {staging_id}: {detail}")
+
+
+@parcels_app.command("stats")
+def parcels_stats() -> None:
+    """Rebuild the area statistics of the active parcel file (after a measure is added or
+    changed). Parcel locations are kept; nothing is re-read from the auditor file."""
+    con = get_connection(load_settings().db_path)
+    row = con.execute(
+        "SELECT file_id, filename FROM parcel_files WHERE status = 'active'"
+    ).fetchone()
+    if row is None:
+        raise StagingError("no parcel file is loaded; run `parcels review` and `parcels commit`")
+    typer.echo(f"{row[1]}: {materialize_stats(con, row[0]):,} area statistics rebuilt")
 
 
 @parcels_app.command("status")

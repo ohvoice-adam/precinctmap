@@ -197,6 +197,9 @@ def test_area_statistics_and_totals(loaded):
     assert stat("precinct", "COLUMBUS 01-B", "housing_units") == (18, 5)  # 1+1+14+1+1
     assert stat("precinct", "COLUMBUS 01-B", "likely_rental_units") == (15, 5)
     assert stat("precinct", "BLENDON-A", "llc_owned") == (1, 1)
+    assert stat("precinct", "BLENDON-A", "llc_owned_share") == (1.0, 1)
+    # -000005 has no owner address: left out of the share, so 1 of the 4 known, not 1 of 5
+    assert stat("precinct", "COLUMBUS 01-B", "owner_elsewhere_share") == (0.25, 4)
     assert stat("council_district", "2", "likely_rental_share") == (0.5, 2)  # -000002, -000011
     assert stat("precinct", "COLUMBUS 01-A", "median_building_value") == (150_000, 4)
     mean_minus_median = stat("precinct", "COLUMBUS 01-A", "building_value_mean_minus_median")[0]
@@ -236,3 +239,37 @@ def test_property_api(loaded, settings):
         c.get("/api/property", params={"metric": "nope", "geography": "precinct"}).status_code
         == 404
     )
+
+
+def test_recommit_is_a_noop_and_a_stale_batch_says_how_to_restage(loaded, settings, tmp_path):
+    import json
+
+    from precinctmap.parcels.ingest import staging_dir
+
+    con, report = loaded
+    sid = report["staging_id"]
+    assert commit_parcels(con, settings, sid) == "already committed"
+    con.execute("UPDATE parcel_files SET status = 'superseded'")  # store without the file
+    with pytest.raises(
+        StagingError, match=r"Re-stage it with `precinctmap parcels review .*--as-of 2026-10-21`"
+    ):
+        commit_parcels(con, settings, sid)
+    again = stage_parcels(con, settings, write_parcel_csv(tmp_path / "Parcel.csv"), AS_OF)
+    assert again["staging_id"] == sid  # same file, same id
+    manifest = json.loads((staging_dir(settings, sid) / "manifest.json").read_text())
+    assert manifest["status"] == "ready"
+
+
+def test_stats_command_rebuilds_area_statistics(loaded, settings, monkeypatch):
+    from typer.testing import CliRunner
+
+    from precinctmap.cli import app
+
+    con, _ = loaded
+    con.execute("DELETE FROM parcel_stats WHERE metric = 'llc_owned_share'")
+    monkeypatch.setenv("PRECINCTMAP_DB_PATH", str(settings.db_path))
+    result = CliRunner().invoke(app, ["parcels", "stats"])
+    assert result.exit_code == 0, result.output
+    assert "area statistics rebuilt" in result.output
+    n = con.execute("SELECT count(*) FROM parcel_stats WHERE metric = 'llc_owned_share'").fetchone()
+    assert n[0] > 0
