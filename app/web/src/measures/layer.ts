@@ -1,15 +1,16 @@
-// Draw one property metric on the shared map: fetch, classify each area, return what was drawn.
+// Draw one area statistic on the shared map: fetch, classify each area, return what was drawn.
 
-import { fetchGeo, fetchProperty } from "../api";
+import { fetchGeo, fetchMeasure } from "../api";
 import type { AreaState } from "../map/view";
 import type { Scale } from "../scales";
 import { binOf } from "../scales";
 import type { AreaCollection } from "../types";
-import type { PropertySelection, PropertyStats } from "./model";
-import { LOW_PARCEL_THRESHOLD, propertyScale } from "./model";
+import type { Dataset, MeasureSelection, MeasureStats } from "./model";
+import { isLow } from "./model";
+import { measureScale } from "./scales";
 
-export interface PropertyDraw {
-  stats: PropertyStats;
+export interface MeasureDraw {
+  stats: MeasureStats;
   scale: Scale;
   states: Map<string, AreaState>;
   areas: AreaCollection;
@@ -17,24 +18,24 @@ export interface PropertyDraw {
   county: AreaCollection;
 }
 
-export async function loadProperty(sel: PropertySelection, asOf: string): Promise<PropertyDraw> {
+export async function loadMeasure(dataset: Dataset, sel: MeasureSelection, asOf: string): Promise<MeasureDraw> {
   const council = sel.geography === "council_district";
   const [areas, county, context, stats] = await Promise.all([
     fetchGeo(sel.geography, asOf),
     fetchGeo("county", asOf),
     council ? fetchGeo("precinct", asOf) : Promise.resolve(null),
-    fetchProperty(sel.metric, sel.geography),
+    fetchMeasure(dataset, sel.metric, sel.geography),
   ]);
-  const scale = propertyScale(stats.kind, stats.label);
+  const scale = measureScale(stats.kind, stats.label, dataset);
   const states = new Map<string, AreaState>();
   for (const f of areas.features) {
     const id = f.properties.feature_id;
     const v = stats.features[id];
     if (!v || v.value === null || v.n === 0) {
-      states.set(id, { status: "not_on_ballot", bin: -1 }); // white: no residential parcels
+      states.set(id, { status: "not_on_ballot", bin: -1 }); // white: nothing to measure here
       continue;
     }
-    states.set(id, { status: v.n < LOW_PARCEL_THRESHOLD ? "low" : "value", bin: binOf(scale, v.value, null) });
+    states.set(id, { status: isLow(stats, v) ? "low" : "value", bin: binOf(scale, v.value, null) });
   }
   return { stats, scale, states, areas, context, county };
 }

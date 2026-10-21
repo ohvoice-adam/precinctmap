@@ -1,12 +1,12 @@
 // Glue: selection -> data -> map paint, legend, notes; hover tooltip; click detail; URL state.
 
-import { exportUrl, fetchCatalog, fetchDetail, fetchGeo, fetchPropertyDetail, fetchResults } from "./api";
+import { exportUrl, fetchCatalog, fetchDetail, fetchGeo, fetchMeasureDetail, fetchResults } from "./api";
 import type { AreaState } from "./map/view";
 import { AreaMap } from "./map/view";
-import { loadProperty } from "./property/layer";
-import type { PropertySelection, PropertyStats } from "./property/model";
-import { propertyTooltip, resolveProperty } from "./property/model";
-import { PropertyControls, renderPropertyDetail, renderPropertySidebar } from "./property/ui";
+import { loadMeasure } from "./measures/layer";
+import type { Dataset, MeasureCatalog, MeasureSelection, MeasureStats } from "./measures/model";
+import { measureTooltip, resolveMeasure } from "./measures/model";
+import { MeasureControls, renderMeasureDetail, renderMeasureSidebar } from "./measures/ui";
 import type { AreaValue, MetricContext } from "./metrics";
 import { areaValue, metricContext } from "./metrics";
 import { binOf, scaleFor } from "./scales";
@@ -17,9 +17,20 @@ import type { Change } from "./state";
 import { Controls } from "./ui/controls";
 import { compact, el, labeled, option } from "./ui/dom";
 import { STATUS_TEXT, marginSides, tooltipLines } from "./ui/format";
+import { AreaTable } from "./ui/table";
+import { measureTable, resultsTable } from "./ui/table-rows";
+import { ViewToggle } from "./ui/viewmode";
 import { renderLegend } from "./ui/legend";
 import { renderDetail, renderDetailError } from "./ui/panel";
 import { Tooltip } from "./ui/tooltip";
+
+/** The stage: a bar (view switch), and a body holding the map pane, table, panel and tooltip. */
+export interface Stage {
+  stage: HTMLElement;
+  bar: HTMLElement;
+  body: HTMLElement;
+  mapEl: HTMLElement;
+}
 
 interface View {
   results: Results;
@@ -34,12 +45,12 @@ export class App {
   private areasKey = "";
   private seq = 0;
   private readonly controls = new Controls((c) => void this.change(c));
-  private readonly propertyControls = new PropertyControls((c) => void this.changeProperty(c));
+  private readonly measureControls = new MeasureControls((c) => void this.changeMeasure(c));
   private readonly dataset = el("select");
   private readonly datasetField = labeled("Data", this.dataset, "ctl-dataset");
-  private mode: "results" | "property" = "results";
-  private psel: PropertySelection | null = null;
-  private pstats: PropertyStats | null = null;
+  private mode: "results" | Dataset = "results";
+  private msel: MeasureSelection | null = null;
+  private mstats: MeasureStats | null = null;
   private readonly summary = el("section", { class: "summary", "aria-live": "polite" });
   private readonly legend = el("section", { class: "legend" });
   private readonly notes = el("section", { class: "notes" });
@@ -47,22 +58,30 @@ export class App {
   private readonly panel = el("aside", { class: "detail", "aria-label": "Area details" });
   private readonly map: AreaMap;
   private readonly tooltip: Tooltip;
+  private readonly table = new AreaTable((id) => void this.openDetail(id), (id) => { this.map.setHover(id); });
 
-  constructor(sidebar: HTMLElement, mapEl: HTMLElement) {
-    sidebar.append(this.datasetField, this.controls.root, this.propertyControls.root, this.summary, this.legend, this.notes, this.exports);
+  constructor(sidebar: HTMLElement, { stage, bar, body, mapEl }: Stage) {
+    sidebar.append(this.datasetField, this.controls.root, this.measureControls.root, this.summary, this.legend, this.notes, this.exports);
     this.dataset.addEventListener("change", () => {
-      const g = (this.mode === "property" ? this.psel?.geography : this.sel?.geography) ?? "precinct";
-      void this.load(this.dataset.value === "property" ? { d: "property", g } : { g }, true);
+      const g = (this.mode === "results" ? this.sel?.geography : this.msel?.geography) ?? "precinct";
+      const d = this.dataset.value;
+      void this.load(d === "results" ? { g } : { d, g }, true);
     });
     this.panel.hidden = true;
-    mapEl.parentElement?.append(this.panel);
+    body.append(this.table.root, this.panel);
     this.map = new AreaMap(mapEl);
-    this.tooltip = new Tooltip(mapEl.parentElement ?? mapEl);
+    this.tooltip = new Tooltip(body);
+    const toggle = new ViewToggle((view) => {
+      stage.dataset.view = view;
+      if (view !== "table") this.map.map.resize();
+    });
+    bar.append(toggle.root);
+    toggle.apply();
     this.map.map.on("mousemove", (e) => { this.hover(e.point.x, e.point.y, this.map.hitAt(e)); });
     this.map.map.on("mouseout", () => { this.tooltip.hide(); this.map.setHover(null); });
     this.map.map.on("click", (e) => {
       const hit = this.map.hitAt(e);
-      if (hit?.kind === "area") void this.openDetail(hit.featureId);
+      if (hit?.kind === "area") void this.openDetail(hit.featureId, true);
     });
     window.addEventListener("popstate", () => void this.load(fromParams(location.search), false));
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") this.closeDetail(); });
@@ -70,11 +89,11 @@ export class App {
 
   async start(): Promise<void> {
     this.catalog = await fetchCatalog();
-    const prop = this.catalog.property;
-    this.datasetField.hidden = !prop;
+    const measures = this.measureCatalogs();
+    this.datasetField.hidden = measures.length === 0;
     this.dataset.replaceChildren(option("results", "Election results", true),
-      ...(prop ? [option("property", `Residential property (auditor, ${prop.as_of})`, false)] : []));
-    if (this.catalog.elections.length === 0 && !prop) {
+      ...measures.map((c) => option(c.dataset, c.label, false)));
+    if (this.catalog.elections.length === 0 && measures.length === 0) {
       this.summary.replaceChildren(el("p", {}, "No elections have been loaded yet. An admin can add one from the upload page."));
       return;
     }
@@ -86,26 +105,33 @@ export class App {
     if (this.sel) await this.load(applyChange(this.sel, c), true);
   }
 
-  private async changeProperty(c: Partial<PropertySelection>): Promise<void> {
-    if (this.psel) await this.load({ d: "property", pm: c.metric ?? this.psel.metric, g: c.geography ?? this.psel.geography }, true);
+  private async changeMeasure(c: Partial<MeasureSelection>): Promise<void> {
+    if (this.msel && this.mode !== "results") {
+      await this.load({ d: this.mode, pm: c.metric ?? this.msel.metric, g: c.geography ?? this.msel.geography }, true);
+    }
+  }
+
+  /** Loaded area-statistics datasets, in Data-selector order. */
+  private measureCatalogs(): MeasureCatalog[] {
+    return [this.catalog?.property, this.catalog?.census].filter((c): c is MeasureCatalog => !!c);
   }
 
   private async load(raw: RawSelection, push: boolean): Promise<void> {
     if (!this.catalog) return;
-    const prop = this.catalog.property;
-    const property = raw.d === "property" && prop !== null;
-    this.mode = property || this.catalog.elections.length === 0 ? "property" : "results";
+    const measures = this.measureCatalogs();
+    const cat = measures.find((c) => c.dataset === raw.d) ?? (this.catalog.elections.length === 0 ? measures[0] : undefined);
+    this.mode = cat ? cat.dataset : "results";
     this.dataset.value = this.mode;
     this.controls.root.hidden = this.mode !== "results";
-    this.propertyControls.root.hidden = this.mode !== "property";
-    if (this.mode === "property" && prop) {
-      const psel = resolveProperty(prop, raw.pm, raw.g);
-      this.psel = psel;
-      const url = `?${new URLSearchParams({ d: "property", pm: psel.metric, g: psel.geography }).toString()}`;
+    this.measureControls.root.hidden = this.mode === "results";
+    if (cat) {
+      const msel = resolveMeasure(cat, raw.pm, raw.g);
+      this.msel = msel;
+      const url = `?${new URLSearchParams({ d: cat.dataset, pm: msel.metric, g: msel.geography }).toString()}`;
       if (push) history.pushState(null, "", url);
       else history.replaceState(null, "", url);
-      this.propertyControls.render(prop, psel);
-      await this.drawProperty(psel);
+      this.measureControls.render(cat, msel);
+      await this.drawMeasure(cat, msel);
       return;
     }
     const sel = resolve(this.catalog, raw);
@@ -148,28 +174,28 @@ export class App {
       states.set(id, { status: v.status, bin: binOf(scale, v.value, v.leader) });
     }
     this.view = { results, ctx, values };
+    this.table.render(resultsTable(areas, values, ctx, results, findContest(this.catalog, sel).name));
     this.map.paint(scale.bins.map((b) => b.color), states);
     renderLegend(this.legend, scale, sel.geography, new Set([...states.values()].map((s) => s.bin)));
     this.renderSidebar(sel, results);
   }
 
-  private async drawProperty(psel: PropertySelection): Promise<void> {
-    const prop = this.catalog?.property;
-    if (!prop) return;
+  private async drawMeasure(cat: MeasureCatalog, msel: MeasureSelection): Promise<void> {
     const token = ++this.seq;
-    const d = await loadProperty(psel, prop.as_of);
+    const d = await loadMeasure(cat.dataset, msel, cat.as_of);
     if (token !== this.seq) return;
-    const key = `${d.areas.boundary_set_id}|${psel.geography}|property`;
+    const key = `${d.areas.boundary_set_id}|${msel.geography}|${cat.dataset}`;
     if (key !== this.areasKey) {
       await this.map.setAreas(d.areas, d.context, d.county);
       if (token !== this.seq) return;
       this.areasKey = key;
       this.closeDetail();
     }
-    this.pstats = d.stats;
+    this.mstats = d.stats;
+    this.table.render(measureTable(d.areas, d.stats));
     this.map.paint(d.scale.bins.map((b) => b.color), d.states);
-    renderLegend(this.legend, d.scale, psel.geography, new Set([...d.states.values()].map((s) => s.bin)), "property");
-    renderPropertySidebar(this.summary, this.notes, this.exports, d.stats, prop);
+    renderLegend(this.legend, d.scale, msel.geography, new Set([...d.states.values()].map((s) => s.bin)), cat.dataset);
+    renderMeasureSidebar(this.summary, this.notes, this.exports, d.stats, cat);
   }
 
   private renderSidebar(sel: Selection, results: Results): void {
@@ -193,9 +219,9 @@ export class App {
   }
 
   private hover(x: number, y: number, hit: ReturnType<AreaMap["hitAt"]>): void {
-    if (hit?.kind === "area" && this.mode === "property" && this.pstats) {
+    if (hit?.kind === "area" && this.mode !== "results" && this.mstats) {
       this.map.setHover(hit.featureId);
-      this.tooltip.show(propertyTooltip(hit.name, this.pstats, hit.featureId), x, y);
+      this.tooltip.show(measureTooltip(hit.name, this.mstats, hit.featureId), x, y);
       return;
     }
     if (!hit || (!this.view && hit.kind === "area")) {
@@ -217,14 +243,16 @@ export class App {
     this.tooltip.show(tooltipLines(hit.name, ctx.metric, v, results, marginSides(results, ctx.topTwo), method), x, y);
   }
 
-  private async openDetail(featureId: string): Promise<void> {
+  private async openDetail(featureId: string, fromMap = false): Promise<void> {
     this.map.select(featureId);
-    if (this.mode === "property" && this.psel) {
+    this.table.select(featureId, fromMap);
+    if (this.mode !== "results" && this.msel) {
+      const dataset = this.mode;
       try {
-        renderPropertyDetail(this.panel, await fetchPropertyDetail(this.psel.geography, featureId), () => { this.closeDetail(); });
+        renderMeasureDetail(this.panel, await fetchMeasureDetail(dataset, this.msel.geography, featureId), () => { this.closeDetail(); });
       } catch (err) {
-        console.error("property detail failed", err);
-        renderDetailError(this.panel, "No residential parcels in this area.");
+        console.error(`${dataset} detail failed`, err);
+        renderDetailError(this.panel, dataset === "census" ? "No census estimates for this area." : "No residential parcels in this area.");
       }
       return;
     }
@@ -241,5 +269,6 @@ export class App {
   private closeDetail(): void {
     this.panel.hidden = true;
     this.map.select(null);
+    this.table.select(null);
   }
 }

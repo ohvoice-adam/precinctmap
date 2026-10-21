@@ -9,6 +9,7 @@ from typing import Any
 
 import duckdb
 
+from precinctmap.serve.census import census_catalog
 from precinctmap.serve.labels import GEOGRAPHY_LABELS
 from precinctmap.serve.property import property_catalog
 
@@ -115,4 +116,5 @@ def catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         "years": sorted({e["year"] for e in elections}, reverse=True),
         "elections": elections,
         "property": property_catalog(con),
+        "census": census_catalog(con),
     }

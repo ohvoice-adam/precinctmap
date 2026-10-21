@@ -44,66 +44,81 @@ class CatalogElection(BaseModel):
     contests: list[CatalogContest]
 
 
-class PropertyMetric(BaseModel):
+class MeasureMetric(BaseModel):
     metric: str
     label: str
-    kind: str  # count | share | currency | currency_delta | score
+    kind: str  # count | share | currency | currency_delta | score | density
     description: str
+    group: str
+    universe: str | None = None  # what `n` counts (census measures)
 
 
-class PropertyGeography(BaseModel):
+class MeasureGeography(BaseModel):
     geography: str
     label: str
 
 
-class PropertyCatalog(BaseModel):
+class MeasureCatalog(BaseModel):
+    """An area-statistics dataset (auditor property, census demographics)."""
+
+    dataset: str  # property | census
+    label: str  # for the Data selector
     as_of: str
     source_file: str
-    geographies: list[PropertyGeography]
-    metrics: list[PropertyMetric]
+    geographies: list[MeasureGeography]
+    metrics: list[MeasureMetric]
     notes: list[str]
 
 
 class Catalog(BaseModel):
     years: list[int]
     elections: list[CatalogElection]
-    property: PropertyCatalog | None = None
+    property: MeasureCatalog | None = None
+    census: MeasureCatalog | None = None
 
 
-class PropertyValue(BaseModel):
+class MeasureValue(BaseModel):
     value: float | None
-    n: int  # parcels the value rests on
+    n: int  # parcels (property) or the universe estimate (census) the value rests on
+    moe: float | None = None  # 90% margin of error (census)
+    reliable: bool | None = None  # census: coefficient of variation <= 30%
 
 
-class PropertyStats(BaseModel):
+class MeasureStats(BaseModel):
+    dataset: str
     metric: str
     label: str
     kind: str
     description: str
+    universe: str | None = None
     geography: str
     geography_label: str
     boundary_set_id: str
     as_of: str
     source_file: str
     notes: list[str]
-    features: dict[str, PropertyValue]
+    features: dict[str, MeasureValue]
 
 
-class PropertyDetailMetric(BaseModel):
+class MeasureDetailMetric(BaseModel):
     metric: str
     label: str
     kind: str
+    universe: str | None = None
     value: float | None
     n: int
+    moe: float | None = None
+    reliable: bool | None = None
 
 
-class PropertyDetail(BaseModel):
+class MeasureDetail(BaseModel):
+    dataset: str
     feature_id: str
     name: str
     geography: str
     as_of: str
     source_file: str
-    metrics: list[PropertyDetailMetric]
+    metrics: list[MeasureDetailMetric]
     grades: list[dict[str, Any]]
 
 

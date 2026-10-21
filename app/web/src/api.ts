@@ -1,4 +1,4 @@
-import type { PropertyDetail, PropertyStats } from "./property/model";
+import type { Dataset, MeasureDetail, MeasureStats } from "./measures/model";
 import type { AreaCollection, Catalog, Detail, Results } from "./types";
 
 export class ApiError extends Error {
@@ -68,19 +68,20 @@ export function exportUrl(kind: "csv" | "geojson", election: string, contest: st
   return `/api/export.${kind}?${new URLSearchParams({ election, contest, geography }).toString()}`;
 }
 
-const propertyCache = new Map<string, Promise<PropertyStats>>();
+const measureCache = new Map<string, Promise<MeasureStats>>();
 
-export function fetchProperty(metric: string, geography: string): Promise<PropertyStats> {
-  const key = `${metric}|${geography}`;
-  let hit = propertyCache.get(key);
+/** One area statistic for a geography: `/api/property` or `/api/census`. */
+export function fetchMeasure(dataset: Dataset, metric: string, geography: string): Promise<MeasureStats> {
+  const key = `${dataset}|${metric}|${geography}`;
+  let hit = measureCache.get(key);
   if (!hit) {
-    hit = getJson<PropertyStats>("/api/property", { metric, geography });
-    hit.catch(() => propertyCache.delete(key));
-    propertyCache.set(key, hit);
+    hit = getJson<MeasureStats>(`/api/${dataset}`, { metric, geography });
+    hit.catch(() => measureCache.delete(key));
+    measureCache.set(key, hit);
   }
   return hit;
 }
 
-export function fetchPropertyDetail(geography: string, feature: string): Promise<PropertyDetail> {
-  return getJson<PropertyDetail>("/api/property/detail", { geography, feature });
+export function fetchMeasureDetail(dataset: Dataset, geography: string, feature: string): Promise<MeasureDetail> {
+  return getJson<MeasureDetail>(`/api/${dataset}/detail`, { geography, feature });
 }

@@ -222,7 +222,7 @@ def test_property_api(loaded, settings):
         m["metric"] for m in prop["metrics"]
     ]
     r = c.get("/api/property", params={"metric": "likely_rentals", "geography": "precinct"}).json()
-    assert r["features"]["COLUMBUS 01-B"] == {"value": 2.0, "n": 5}
+    assert r["features"]["COLUMBUS 01-B"] == {"value": 2.0, "n": 5, "moe": None, "reliable": None}
     d = c.get(
         "/api/property/detail", params={"geography": "precinct", "feature": "BLENDON-A"}
     ).json()

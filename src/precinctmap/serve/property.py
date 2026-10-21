@@ -21,6 +21,17 @@ RENTAL = (
 CONDITION = "Building condition (COND) is blank in this auditor file, so it cannot be mapped."
 
 
+def group_of(metric: str) -> str:
+    """Heading the metric is listed under in the map's measure picker."""
+    if metric == "housing_units":
+        return "Housing units"
+    if "grade" in metric:
+        return "Construction grade"
+    if "value" in metric:
+        return "Valuation"
+    return "Rentals and ownership"
+
+
 def _active(con: duckdb.DuckDBPyConnection) -> tuple[str, str, Any] | None:
     row = con.execute(
         "SELECT file_id, filename, as_of FROM parcel_files WHERE status = 'active'"
@@ -41,11 +52,19 @@ def property_catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
     ]
     order = ["precinct", "council_district", "municipality", "zcta"]
     return {
+        "dataset": "property",
+        "label": f"Residential property (auditor, {as_of.isoformat()})",
         "as_of": as_of.isoformat(),
         "source_file": filename,
         "geographies": [{"geography": g, "label": GEOGRAPHY_LABELS[g]} for g in order if g in geos],
         "metrics": [
-            {"metric": m.metric, "label": m.label, "kind": m.kind, "description": m.description}
+            {
+                "metric": m.metric,
+                "label": m.label,
+                "kind": m.kind,
+                "description": m.description,
+                "group": group_of(m.metric),
+            }
             for m in METRICS
         ],
         "notes": [UNIVERSE, RENTAL, CONDITION],
@@ -78,6 +97,7 @@ def property_stats(con: duckdb.DuckDBPyConnection, metric: str, geography: str) 
     if geography == "zcta":
         notes.append(ZCTA_NOTE)
     return {
+        "dataset": "property",
         "metric": m.metric,
         "label": m.label,
         "kind": m.kind,
@@ -117,6 +137,7 @@ def property_detail(con: duckdb.DuckDBPyConnection, geography: str, feature: str
     ).fetchone()
     grades = _grades(con, file_id, geography, feature)
     return {
+        "dataset": "property",
         "feature_id": feature,
         "name": name[0] if name else feature,
         "geography": geography,

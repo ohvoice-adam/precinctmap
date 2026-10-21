@@ -22,8 +22,9 @@ A map of Franklin County precinct election results. You can view results by prec
    - **Pale area outside the county line** means no data: only Franklin County results are loaded.
 3. **Hover** over an area for its name, the value, and the number of votes.
 4. **Click** an area for the full breakdown: every choice's votes and share, turnout, and the precincts it was built from. The panel also names the official file the numbers come from.
-5. **Share a view** by copying the page address. It records everything you picked.
-6. **Export** the current view as CSV (for spreadsheets) or GeoJSON (for mapping software), from the bottom of the left panel.
+5. **See it as a table** with the **Map / Table / Map and table** switch above the map. On a wide screen the table sits beside the map by default. It lists every area with the mapped value, the number of votes (or parcels) behind it, and notes such as "fewer than 25 votes". Click a column heading to sort, and again to reverse. Areas with no value always sort last. Click an area's name to open its breakdown.
+6. **Share a view** by copying the page address. It records everything you picked.
+7. **Export** the current view as CSV (for spreadsheets) or GeoJSON (for mapping software), from the bottom of the left panel.
 
 ### Residential property
 
@@ -39,6 +40,25 @@ What the property measures mean:
 - **Mean minus median** is positive where a few expensive properties pull the average above the typical home.
 - **Building condition** is blank in the auditor's file, so it isn't mapped.
 - Areas with fewer than 25 homes are hatched. No owner names or addresses are stored or shown.
+
+### Census demographics
+
+Switch **Data** to *Census demographics* for American Community Survey 2020–2024 estimates, by precinct, council district, city or township, and ZIP area:
+- **Education:** bachelor's degree or higher, graduate degree.
+- **Age and household:** adults 18 to 34, never married.
+- **Race and ethnicity:** White, Black, Hispanic or Latino, and Asian shares.
+- **Immigration:** born outside the U.S., not a U.S. citizen. The census doesn't ask about legal or immigration status.
+- **Housing and income:** renter households, renters paying 30% or more of income on rent, median household income, below 200% of the poverty line.
+- **Urbanism:** commuting by transit, walking or bike; working from home; people per square mile.
+
+What to know:
+- These are **survey estimates** with margins of error. The tooltip, table and detail panel show each value as "45.2% ± 6.1 points" (90% margin).
+- **Hatched areas** have a large margin of error. Single precincts often do, especially for small groups. Council districts and cities are much more reliable.
+- Census reports these numbers for block groups (and, for immigration, only for larger tracts). They're split across 2020 census blocks by population and added up for each area, so small-area values are approximate.
+- Median income tops out at "$200,000 or more", the census's highest income bracket.
+- Areas are described, not voters: no individual data is involved.
+
+How the measures were chosen and calculated: `project-docs/census.md`.
 
 ### Things to know when reading the map
 
@@ -108,6 +128,16 @@ docker compose run --rm precinctmap precinctmap parcels commit <prc-id> --replac
 ```
 
 From the voter file, only addresses, precincts and council districts are kept.
+
+### Census data
+
+Load a new ACS release with the app stopped. The steps and method are in `project-docs/census.md`.
+
+```bash
+docker compose run --rm precinctmap precinctmap census fetch --year 2024 --as-of YYYY-MM-DD
+docker compose run --rm precinctmap precinctmap census load --year 2024 --as-of YYYY-MM-DD   # review
+docker compose run --rm precinctmap precinctmap census load --year 2024 --as-of YYYY-MM-DD --commit
+```
 
 ### When something changes
 

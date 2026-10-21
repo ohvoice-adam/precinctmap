@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.api import routes_admin, routes_property, routes_read
+from app.api import routes_admin, routes_census, routes_property, routes_read
 from app.api.auth import require_admin
 from precinctmap import __version__
 from precinctmap.aggregate.reconcile import ReconciliationError
@@ -61,6 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     api.include_router(routes_read.router)
     api.include_router(routes_property.router)
+    api.include_router(routes_census.router)
     api.include_router(routes_admin.router)
     if settings.static_dir is not None:
         admin_page = settings.static_dir / "admin.html"

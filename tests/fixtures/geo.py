@@ -4,6 +4,8 @@ x 0-1000 COLUMBUS 01-A | 1000-2000 COLUMBUS 01-B | 2000-3000 BLENDON-A | 3000-40
 | 4000-5000 OBETZ-D. Council district 1 covers x 0-1400, district 2 x 1400-2000.
 Brice (a village with no precincts) sits at x 2900-3000 inside BLENDON-A.
 Block populations make COLUMBUS 01-B 30/70 between districts and BLENDON-A 90/10 Blendon/Brice.
+Block groups: 390490001001 = x 0-2000 (blocks 1-3), 390490001002 = x 2000-3000, 390490002001 =
+x 3000-5000; the first two share tract 39049000100.
 """
 
 from pathlib import Path
@@ -13,6 +15,7 @@ from shapely.geometry import box
 
 X0, Y0 = 1_800_000, 700_000
 CRS = 3735
+SQ_M_PER_SQ_FT = 0.09290304
 CODES = {  # BOE PRECINCTID per precinct, as the voter file uses them
     "COLUMBUS 01-A": "01001A",
     "COLUMBUS 01-B": "01001B",
@@ -67,14 +70,14 @@ def write_mini_county(data_dir: Path) -> None:
             {"NAME": "Hamilton", "LSAD": "44", "geometry": cell(3000, 5000)},
         ],
     )
-    blocks = [
-        ("1", 0, 1000, 100),
-        ("2", 1000, 1400, 30),
-        ("3", 1400, 2000, 70),
-        ("4", 2000, 2900, 90),
-        ("5", 2900, 3000, 10),
-        ("6", 3000, 4000, 50),
-        ("7", 4000, 5000, 50),
+    blocks = [  # GEOID20: tract (11) + block (4); the block's first digit is its block group
+        ("390490001001001", 0, 1000, 100),
+        ("390490001001002", 1000, 1400, 30),
+        ("390490001001003", 1400, 2000, 70),
+        ("390490001002001", 2000, 2900, 90),
+        ("390490001002002", 2900, 3000, 10),
+        ("390490002001001", 3000, 4000, 50),
+        ("390490002001002", 4000, 5000, 50),
     ]
     _write(
         b / "blocks.shp",
@@ -83,6 +86,7 @@ def write_mini_county(data_dir: Path) -> None:
                 "GEOID20": g,
                 "POP20": p,
                 "HOUSING20": p // 2,
+                "ALAND20": round((z - a) * 1000 * SQ_M_PER_SQ_FT),
                 "COUNTYFP20": "049",
                 "geometry": cell(a, z),
             }

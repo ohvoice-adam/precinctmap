@@ -1,6 +1,6 @@
 // Mirrors app/api/models.py (the API contract).
 
-import type { PropertyCatalog } from "./property/model";
+import type { MeasureCatalog } from "./measures/model";
 
 export type Geography = "precinct" | "council_district" | "municipality" | "zcta";
 export type ChoiceKind =
@@ -55,7 +55,8 @@ export interface CatalogElection {
 export interface Catalog {
   years: number[];
   elections: CatalogElection[];
-  property: PropertyCatalog | null;
+  property: MeasureCatalog | null;
+  census?: MeasureCatalog | null;
 }
 
 export interface ResultChoice extends Choice {

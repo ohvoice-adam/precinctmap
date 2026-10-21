@@ -1,0 +1,203 @@
+/* Stage layout (map, table, or both side by side) and the sortable area table. */
+:root {
+  --table-w: 480px;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-bar {
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+}
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.view-toggle button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.8rem;
+  border: none;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.view-toggle button + button {
+  border-left: 1px solid var(--hairline);
+}
+
+.view-toggle button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.stage-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.map-pane {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.table-pane {
+  width: var(--table-w);
+  flex: none;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+}
+
+.stage[data-view="map"] .table-pane,
+.stage[data-view="table"] .map-pane {
+  display: none;
+}
+
+.stage[data-view="table"] .table-pane {
+  width: auto;
+  flex: 1;
+  border-left: none;
+}
+
+/* The detail panel floats over the map; keep it off the table when both are shown. */
+.stage[data-view="both"] .detail {
+  right: calc(var(--table-w) + 3.25rem);
+}
+
+.stage[data-view="table"] .detail {
+  right: 1rem;
+}
+
+.table-scroll {
+  overflow: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+table.areas {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+table.areas caption {
+  text-align: left;
+  font-weight: bold;
+  padding: 0.6rem 0.75rem 0.4rem;
+}
+
+table.areas caption .small {
+  font-weight: normal;
+  color: var(--ink-muted);
+}
+
+table.areas thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  padding: 0;
+}
+
+table.areas th.num,
+table.areas td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Values stay on one line; long header labels wrap instead of squeezing area names. */
+table.areas td.num {
+  white-space: nowrap;
+}
+
+table.areas tbody th {
+  min-width: 7rem;
+}
+
+table.areas .sort {
+  font: inherit;
+  font-weight: bold;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  background: none;
+  color: var(--ink);
+  text-align: inherit;
+  cursor: pointer;
+}
+
+table.areas .sort:hover {
+  background: var(--hairline);
+}
+
+table.areas .arrow {
+  display: inline-block;
+  min-width: 1em;
+  margin-left: 0.25rem;
+  font-size: 0.7rem;
+}
+
+table.areas tbody th,
+table.areas tbody td {
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  font-weight: normal;
+}
+
+table.areas tbody tr:hover,
+table.areas tbody tr.selected {
+  background: #eef1f4;
+}
+
+table.areas tbody tr.selected th {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+table.areas .area-link {
+  font: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+}
+
+table.areas .area-link:hover {
+  text-decoration: underline;
+}
+
+table.areas td.note {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 760px) {
+  .stage-bar {
+    padding: 0.35rem 16px;
+  }
+
+  .stage[data-view="table"] .detail {
+    right: 0.5rem;
+  }
+}
