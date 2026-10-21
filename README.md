@@ -2,7 +2,7 @@
 
 A map of Franklin County precinct election results. You can view results by precinct, Columbus council district, city, village or township, and ZIP code area. Every number on the map traces back to an official Board of Elections results file.
 
-- **Map:** `http://<server>:8000/`. Anyone with the link can use it; there is no login.
+- **Map:** `http://<server>:8000/` (or the port set in `PRECINCTMAP_PORT`). Anyone with the link can use it; there is no login.
 - **Add an election:** `http://<server>:8000/admin`. This needs the admin login.
 
 ## Using the map
@@ -90,6 +90,8 @@ cp .env.example .env          # then set PRECINCTMAP_ADMIN_PASSWORD to a long ra
 docker compose up --build -d  # map and admin on http://127.0.0.1:8000
 ```
 
+- **Port and address.** `PRECINCTMAP_PORT` (default 8000) sets the port the app listens on. `PRECINCTMAP_HOST` (default `127.0.0.1`, this machine only) sets the address it's published on. Change either in `.env`, then run `docker compose up -d`.
+
 - **Organization name.** Set `VITE_ORG_NAME` in `.env` to show your organization's name in the map header. It's applied when the web client is built, so rebuild after changing it. Leave it blank for no name.
 
 - **Data folder.** Everything lives in `./data`, which is never committed:
@@ -100,7 +102,7 @@ docker compose up --build -d  # map and admin on http://127.0.0.1:8000
   - `uploads/`: files uploaded through the admin page
 
   Back up `data/` with the app stopped.
-- **Public access.** The app listens on `127.0.0.1` only. To publish the map, put a reverse proxy with **HTTPS** in front of it. The admin login uses HTTP Basic, which is only safe over HTTPS.
+- **Public access.** By default the app is reachable only from this machine (`127.0.0.1`). To publish the map, put a reverse proxy with **HTTPS** in front of it. The admin login uses HTTP Basic, which is only safe over HTTPS.
 - **Admin password.** If `PRECINCTMAP_ADMIN_PASSWORD` is unset, shorter than 12 characters, or a placeholder, admin stays locked.
 - **One process at a time.** The database allows one writer. While the app is running, command-line tools that open it stop with a "store is open in another process" message. Use the admin page instead, or stop the app (`docker compose stop`) first.
 

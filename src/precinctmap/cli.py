@@ -12,6 +12,7 @@ from precinctmap.cli_boundaries import boundaries_app
 from precinctmap.cli_census import census_app
 from precinctmap.cli_ingest import ingest
 from precinctmap.cli_parcels import addresses_app, parcels_app
+from precinctmap.cli_serve import serve
 from precinctmap.config import load_settings
 from precinctmap.io.db import StoreLockedError, close_all, get_connection
 
@@ -24,6 +25,7 @@ app.add_typer(aggregate_app, name="aggregate")
 app.add_typer(addresses_app, name="addresses")
 app.add_typer(parcels_app, name="parcels")
 app.add_typer(census_app, name="census")
+app.command()(serve)
 
 
 @app.callback()
@@ -47,6 +49,7 @@ def info() -> None:
     typer.echo(f"db_path={settings.db_path}")
     typer.echo(f"data_dir={settings.data_dir}")
     typer.echo(f"static_dir={settings.static_dir}")
+    typer.echo(f"listen={settings.host}:{settings.port}")
 
 
 def _fmt(n: object) -> str:

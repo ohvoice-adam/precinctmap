@@ -44,7 +44,10 @@ ENV PATH=/app/.venv/bin:$PATH \
 
 # Runs as the uid/gid compose passes (defaults to 1000 so ./data stays writable).
 USER 1000:1000
+# Listens on PRECINCTMAP_PORT (default 8000) on every interface inside the container; compose
+# publishes it on PRECINCTMAP_HOST only.
+ENV PRECINCTMAP_PORT=8000
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)"
-CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+  CMD python -c "import os, urllib.request; urllib.request.urlopen(f\"http://127.0.0.1:{os.environ.get('PRECINCTMAP_PORT', '8000')}/api/health\", timeout=2)"
+CMD ["sh", "-c", "exec uvicorn app.api.main:app --host 0.0.0.0 --port \"${PRECINCTMAP_PORT:-8000}\""]

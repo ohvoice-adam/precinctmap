@@ -57,7 +57,7 @@ uv run precinctmap parcels status
 uv run precinctmap census fetch --year 2024 --as-of D           # ACS summary-file tables, county rows only (no API key)
 uv run precinctmap census load --year 2024 --as-of D [--commit] # allocate to every geography; review, then commit
 uv run precinctmap census status
-uv run uvicorn app.api.main:app --reload       # API on :8000
+uv run precinctmap serve --reload              # API on PRECINCTMAP_HOST:PRECINCTMAP_PORT (from .env; default 127.0.0.1:8000)
 cd app/web && corepack pnpm dev                # web on :5173, proxies /api (pnpm pinned via packageManager)
 docker compose up --build                      # full stack
 ```
@@ -154,7 +154,7 @@ Every displayed number traces back through `geo_results` to `precinct_results` t
 - **Detail panel:** clicking an area shows every choice's votes and share, the method (exact or allocated) with the split share, and the source file name.
 - **Export:** CSV and GeoJSON of the current view.
 - **Admin:** an upload page drives the same staging, review, and commit flow as the CLI, and shows the review report before the commit button is enabled. Built as `app/web/admin.html` (`src/admin/`), served by FastAPI at `/admin` behind the login.
-- **Access:** the map is public, with no viewer login (decision 2026-10-21). Only `/admin` and `/api/ingest/*` need a login: HTTP Basic from `PRECINCTMAP_ADMIN_USER` / `PRECINCTMAP_ADMIN_PASSWORD`. It fails closed on missing or placeholder passwords, and unsafe methods require the `X-PRECINCTMAP-Admin: 1` header (CSRF guard). Replacing an election's loaded file requires an explicit `replace` confirmation. Docker binds `127.0.0.1`; put HTTPS in front before exposing it. No voterfile data in the app.
+- **Access:** the map is public, with no viewer login (decision 2026-10-21). Only `/admin` and `/api/ingest/*` need a login: HTTP Basic from `PRECINCTMAP_ADMIN_USER` / `PRECINCTMAP_ADMIN_PASSWORD`. It fails closed on missing or placeholder passwords, and unsafe methods require the `X-PRECINCTMAP-Admin: 1` header (CSRF guard). Replacing an election's loaded file requires an explicit `replace` confirmation. Docker publishes on `PRECINCTMAP_HOST` (default `127.0.0.1`) and `PRECINCTMAP_PORT` (default 8000; the container listens on the same port); put HTTPS in front before exposing it. No voterfile data in the app.
 
 ## Interface theme
 

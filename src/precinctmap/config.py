@@ -16,6 +16,18 @@ class Settings:
     data_dir: Path
     static_dir: Path | None
     county: str = "Franklin"
+    host: str = "127.0.0.1"  # address `precinctmap serve` listens on
+    port: int = 8000  # port the API (and built client) listens on
+
+
+def _port(value: str) -> int:
+    try:
+        port = int(value)
+    except ValueError:
+        port = 0
+    if not 1 <= port <= 65535:
+        raise ValueError(f"PRECINCTMAP_PORT must be a port number (1-65535), not {value!r}")
+    return port
 
 
 def load_settings(env: dict[str, str] | None = None) -> Settings:
@@ -28,4 +40,6 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         data_dir=data_dir,
         static_dir=Path(static) if static else None,
         county=source.get("PRECINCTMAP_COUNTY", "Franklin"),
+        host=source.get("PRECINCTMAP_HOST", "127.0.0.1"),
+        port=_port(source.get("PRECINCTMAP_PORT", "8000")),
     )
