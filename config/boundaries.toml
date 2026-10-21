@@ -1,0 +1,105 @@
+# Boundary registry. `precinctmap boundaries load` makes the store match this file.
+# Paths are relative to PRECINCTMAP_DATA_DIR. Dates: valid_from inclusive, valid_to exclusive.
+# native_from = the date a set actually took effect; lookups before it are labeled retroactive.
+# Changing an entry changes its fingerprint; reload it with `--replace <id>`.
+
+county = "Franklin"
+
+[blocks]
+source = "boundaries/tiger_dl/tl_2020_39_tabblock20.zip"
+where = "COUNTYFP20 = '049'"
+vintage = 2020
+id_field = "GEOID20"
+pop_field = "POP20"
+housing_field = "HOUSING20"
+
+# --- County outline (first: other sets clip to it) -----------------------------------
+
+[[sets]]
+id = "franklin-county-2026"
+geography = "county"
+source = "boundaries/tiger_dl/tl_2026_us_county.zip"
+where = "GEOID = '39049'"
+id_field = "GEOID"
+name_template = "{NAMELSAD}"
+valid_from = 2020-01-01
+notes = "TIGER 2026 county outline; clip mask and context only."
+
+# --- Precincts -------------------------------------------------------------------------
+
+[[sets]]
+id = "franklin-precincts-2025-07"
+geography = "precinct"
+source = "boundaries/franklin_precincts_2026/VotingPrecinct.shp"
+id_field = "NAME"
+code_field = "PRECINCTID"  # BOE code used by the voter file
+valid_from = 2025-07-30
+native_from = 2025-07-30
+notes = "Franklin County BOE voting precincts; created 2025-07-30, last edited 2025-09-18."
+
+[[sets]]
+id = "franklin-precincts-2025-07-retro"
+geography = "precinct"
+derive = "merge_precincts"
+from = "franklin-precincts-2025-07"
+merge = { "HAMILTON-A" = ["HAMILTON-A", "OBETZ-D"] }
+valid_from = 2024-01-01
+valid_to = 2025-07-30
+native_from = 2025-07-30
+notes = """No older precinct file can be obtained, so the 2025 file is applied retroactively. \
+OBETZ-D was carved from HAMILTON-A after the May 2025 primary, so they are merged here."""
+
+# --- Municipalities and townships (exact by precinct name prefix) ----------------------
+
+[[sets]]
+id = "franklin-municipalities-2025-07"
+geography = "municipality"
+derive = "precinct_jurisdictions"
+from = "franklin-precincts-2025-07"
+places = "boundaries/tl_2026_39_place.zip"
+county_subdivisions = "boundaries/tiger_dl/tl_2026_39_cousub.zip"
+carve_places = ["Brice", "Harrisburg", "Lithopolis", "Lockbourne", "Pickerington"]
+aliases = { "GRANDVIEW" = "Grandview Heights" }
+valid_from = 2025-07-30
+native_from = 2025-07-30
+notes = """Dissolved precincts by name prefix. Villages with no precincts of their own are cut \
+out of their host township with TIGER 2026 place boundaries (allocated by block population)."""
+
+[[sets]]
+id = "franklin-municipalities-2025-07-retro"
+geography = "municipality"
+derive = "precinct_jurisdictions"
+from = "franklin-precincts-2025-07-retro"
+places = "boundaries/tl_2026_39_place.zip"
+county_subdivisions = "boundaries/tiger_dl/tl_2026_39_cousub.zip"
+carve_places = ["Brice", "Harrisburg", "Lithopolis", "Lockbourne", "Pickerington"]
+aliases = { "GRANDVIEW" = "Grandview Heights" }
+valid_from = 2024-01-01
+valid_to = 2025-07-30
+native_from = 2025-07-30
+notes = "Same derivation from the retroactive precinct set."
+
+# --- Columbus council districts ---------------------------------------------------------
+
+[[sets]]
+id = "columbus-council-districts-2023"
+geography = "council_district"
+source = "boundaries/Columbus_City_Council_Districts.geojson"
+id_field = "DISTRICT"
+name_template = "District {DISTRICT}"
+jurisdiction = "COLUMBUS"
+valid_from = 2023-01-01
+native_from = 2023-01-01
+notes = "The original and current district map (first used 2023). File last edited 2024-11-26."
+
+# --- ZIP code areas -----------------------------------------------------------------------
+
+[[sets]]
+id = "zcta-2020-franklin"
+geography = "zcta"
+source = "boundaries/tl_2026_us_zcta520.zip"
+id_field = "ZCTA5CE20"
+name_template = "ZIP {ZCTA5CE20}"
+clip_to_county = true
+valid_from = 2020-01-01
+notes = "Census ZCTA5 (2020 definitions, TIGER 2026), clipped to the Franklin County portion."

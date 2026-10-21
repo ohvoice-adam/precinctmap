@@ -1,0 +1,137 @@
+/* Admin page layout; interface tokens come from styles.css. */
+html,
+body {
+  height: auto;
+}
+
+.admin {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem 16px 3rem;
+  line-height: 1.45;
+}
+
+.admin h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.5rem;
+}
+
+.upload {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+
+.upload .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.upload small {
+  font-weight: normal;
+  color: var(--ink-2);
+}
+
+.upload input[type="date"],
+.upload input[type="file"] {
+  font: inherit;
+}
+
+.check {
+  font-size: 0.9rem;
+}
+
+button.primary {
+  justify-self: start;
+  font: inherit;
+  font-weight: bold;
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  color: var(--surface);
+  background: var(--accent);
+  cursor: pointer;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--ink);
+}
+
+button.primary:disabled {
+  background: #a9a8a2;
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: 1.5rem;
+}
+
+.status {
+  font-weight: bold;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border-left: 4px solid;
+}
+
+.status-ready {
+  border-color: #0ca30c;
+  background: #eef7ee;
+}
+
+.status-blocked {
+  border-color: #d03b3b;
+  background: #fbefef;
+}
+
+.status-noop {
+  border-color: #898781;
+  background: #f4f3ef;
+}
+
+.blockers h3,
+.warnings h3 {
+  font-size: 0.95rem;
+  margin: 0.8rem 0 0.2rem;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  font-size: 0.9rem;
+}
+
+.facts dt {
+  font-weight: bold;
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.result pre {
+  max-height: 420px;
+  overflow: auto;
+  font-size: 0.75rem;
+  background: #f7f6f3;
+  padding: 0.75rem;
+}
+
+.ok {
+  color: #006300;
+  font-weight: bold;
+}
+
+.confirm {
+  display: block;
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #fab219;
+  background: #fff8e8;
+  font-weight: bold;
+}

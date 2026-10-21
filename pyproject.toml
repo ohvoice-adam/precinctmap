@@ -1,0 +1,81 @@
+[project]
+name = "precinctmap"
+version = "0.1.0"
+description = "Election results toolkit: ingest, catalog, boundary registry, aggregation"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pandas>=2.2",
+    "geopandas>=1.0",
+    "shapely>=2.0",
+    "pyogrio>=0.10",
+    "pyproj>=3.6",
+    "openpyxl>=3.1",
+    "python-calamine>=0.3",
+    "duckdb>=1.1",
+    "typer>=0.12",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.8",
+    "python-multipart>=0.0.32",
+]
+
+[project.optional-dependencies]
+bq = ["google-cloud-bigquery>=3.25"]
+
+[project.scripts]
+precinctmap = "precinctmap.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pandas-stubs>=2.2",
+    "httpx2>=2.13",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/precinctmap"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["app/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "ANN", "PTH", "C90"]
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["precinctmap", "app"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+mypy_path = "src"
+packages = ["precinctmap", "app.api"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["geopandas.*", "shapely.*", "pyogrio.*", "python_calamine.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["bq: talks to BigQuery; needs ADC and network (deselect with -m 'not bq')"]
+
+[tool.uv]
+# Supply-chain guard: resolve only releases at least two weeks old (mirrors pnpm's policy).
+exclude-newer = "2 weeks"

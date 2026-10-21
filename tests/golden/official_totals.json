@@ -1,0 +1,112 @@
+[
+  {
+    "election_id": "franklin-2024-03-19-primary",
+    "file": "2024-Election-Results-CSV.xlsx",
+    "contest_raw": "Dem For U.S. Senator -",
+    "choice_raw": "Sherrod Brown",
+    "columbus_only": false,
+    "county_total_row": 70533,
+    "franklin_precincts": 70533,
+    "other_counties": 0
+  },
+  {
+    "election_id": "franklin-2024-03-19-primary",
+    "file": "2024-Election-Results-CSV.xlsx",
+    "contest_raw": "Rep For U.S. Senator -",
+    "choice_raw": "Bernie Moreno",
+    "columbus_only": false,
+    "county_total_row": 30271,
+    "franklin_precincts": 30271,
+    "other_counties": 0
+  },
+  {
+    "election_id": "franklin-2024-11-05-general",
+    "file": "Official-Results-by-Precinct.xlsx",
+    "contest_raw": "For President and Vice President -",
+    "choice_raw": "Dem Kamala D. Harris",
+    "columbus_only": false,
+    "county_total_row": 380518,
+    "franklin_precincts": 380518,
+    "other_counties": 0
+  },
+  {
+    "election_id": "franklin-2024-11-05-general",
+    "file": "Official-Results-by-Precinct.xlsx",
+    "contest_raw": "For President and Vice President -",
+    "choice_raw": "Rep Donald J. Trump",
+    "columbus_only": false,
+    "county_total_row": 210830,
+    "franklin_precincts": 210830,
+    "other_counties": 0
+  },
+  {
+    "election_id": "franklin-2024-11-05-general",
+    "file": "Official-Results-by-Precinct.xlsx",
+    "contest_raw": "#1 State Issue 1 -",
+    "choice_raw": "YES",
+    "columbus_only": false,
+    "county_total_row": 372882,
+    "franklin_precincts": 372882,
+    "other_counties": 0
+  },
+  {
+    "election_id": "franklin-2025-05-06-primary",
+    "file": "2025-Primary-Election-Official-Precinct-Results.xlsx",
+    "contest_raw": "For Member of Council (District 7) City of Columbus",
+    "choice_raw": "Tiara Ross",
+    "columbus_only": true,
+    "county_total_row": 16350,
+    "franklin_precincts": 16142,
+    "other_counties": 208
+  },
+  {
+    "election_id": "franklin-2025-11-04-general",
+    "file": "2025-General-Election_EXPORT_Official.xlsx",
+    "contest_raw": "For Member of Council (District 7) City of Columbus",
+    "choice_raw": "Jesse Vogel",
+    "columbus_only": true,
+    "county_total_row": 53502,
+    "franklin_precincts": 52537,
+    "other_counties": 965
+  },
+  {
+    "election_id": "franklin-2025-11-04-general",
+    "file": "2025-General-Election_EXPORT_Official.xlsx",
+    "contest_raw": "#5 Proposed Bond Issue - Safety, Health, Infrustructure City of Columbus",
+    "choice_raw": "For the Bond Issue",
+    "columbus_only": true,
+    "county_total_row": 77923,
+    "franklin_precincts": 76604,
+    "other_counties": 1319
+  },
+  {
+    "election_id": "franklin-2024-11-05-general",
+    "file": "Official-Results-by-Precinct.xlsx",
+    "contest_raw": "For Representative to Congress (15th District)",
+    "choice_raw": "Rep Mike Carey",
+    "columbus_only": false,
+    "county_total_row": 194831,
+    "franklin_precincts": 104588,
+    "other_counties": 90243
+  },
+  {
+    "election_id": "franklin-2026-05-05-primary",
+    "file": "2026-Primary-Election_EXPORT_Official.xlsx",
+    "contest_raw": "Dem For Representative to Congress (15th District)",
+    "choice_raw": "Adam C. Miller",
+    "columbus_only": false,
+    "county_total_row": 21148,
+    "franklin_precincts": 16836,
+    "other_counties": 4312
+  },
+  {
+    "election_id": "franklin-2026-05-05-primary",
+    "file": "2026-Primary-Election_EXPORT_Official.xlsx",
+    "contest_raw": "Dem For Governor and Lieutenant Governor -",
+    "choice_raw": "Amy Acton",
+    "columbus_only": false,
+    "county_total_row": 118223,
+    "franklin_precincts": 118223,
+    "other_counties": 0
+  }
+]

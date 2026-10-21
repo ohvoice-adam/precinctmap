@@ -1,0 +1,26 @@
+services:
+  precinctmap:
+    build:
+      context: .
+      args:
+        VITE_ORG_NAME: ${VITE_ORG_NAME:-}
+    image: precinctmap:local
+    # Private by default: published on loopback only. Put a reverse proxy in front to expose
+    # on the private network.
+    ports:
+      - "127.0.0.1:${PRECINCTMAP_PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    # Container paths are fixed; .env path values are for local development only.
+    environment:
+      PRECINCTMAP_DATA_DIR: /app/data
+      PRECINCTMAP_DB_PATH: /app/data/precinctmap.duckdb
+      PRECINCTMAP_STATIC_DIR: /app/static
+      # Admin login; from .env (or the shell). Placeholders are refused, so admin stays locked until set.
+      PRECINCTMAP_ADMIN_USER: ${PRECINCTMAP_ADMIN_USER:-admin}
+      PRECINCTMAP_ADMIN_PASSWORD: ${PRECINCTMAP_ADMIN_PASSWORD:-}
+    user: "${PRECINCTMAP_UID:-1000}:${PRECINCTMAP_GID:-1000}"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

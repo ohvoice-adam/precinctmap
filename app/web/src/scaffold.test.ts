@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+
+import { createHeader } from "./header";
+import { BASEMAP_STYLE_URL, FRANKLIN_BOUNDS, FRANKLIN_CENTER, initialView } from "./map/config";
+
+describe("map config", () => {
+  it("centers inside the Franklin County bounds", () => {
+    const [w, s, e, n] = FRANKLIN_BOUNDS;
+    const [lng, lat] = FRANKLIN_CENTER;
+    expect(lng).toBeGreaterThan(w);
+    expect(lng).toBeLessThan(e);
+    expect(lat).toBeGreaterThan(s);
+    expect(lat).toBeLessThan(n);
+  });
+
+  it("max bounds strictly contain the county", () => {
+    const [w, s, e, n] = FRANKLIN_BOUNDS;
+    const [mw, ms, me, mn] = initialView().maxBounds as [number, number, number, number];
+    expect(mw).toBeLessThan(w);
+    expect(ms).toBeLessThan(s);
+    expect(me).toBeGreaterThan(e);
+    expect(mn).toBeGreaterThan(n);
+  });
+
+  it("uses a keyless, no-tracking basemap", () => {
+    expect(BASEMAP_STYLE_URL).toMatch(/^https:\/\/tiles\.openfreemap\.org\//);
+    expect(BASEMAP_STYLE_URL).not.toMatch(/mapbox|google|access_token|key=/i);
+  });
+});
+
+describe("header", () => {
+  it("renders a sentence-case title and no organization name by default", () => {
+    const h = createHeader("Election results map", "");
+    expect(h.tagName).toBe("HEADER");
+    expect(h.querySelector(".app-org")).toBeNull();
+    expect(h.querySelector("h1")?.textContent).toBe("Election results map");
+  });
+
+  it("shows the organization name when one is configured", () => {
+    const h = createHeader("Election results map", "  Example civic group ");
+    expect(h.querySelector(".app-org")?.textContent).toBe("Example civic group");
+  });
+});
