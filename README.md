@@ -160,3 +160,7 @@ scripts/check.sh   # lint, type checks, Python and web tests, production build
 The golden tests compare the database with the Board of Elections' published county totals. They run only when a local database exists and the app is stopped.
 
 Developer notes are in `CLAUDE.md` and `project-docs/`. Status and next steps are in `NOTES.md`.
+
+## License
+
+MIT. See `LICENSE`.

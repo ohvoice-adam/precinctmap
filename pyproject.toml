@@ -3,6 +3,8 @@ name = "precinctmap"
 version = "0.1.0"
 description = "Election results toolkit: ingest, catalog, boundary registry, aggregation"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "pandas>=2.2",
@@ -37,7 +39,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.27"]  # SPDX `license` strings (PEP 639)
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
