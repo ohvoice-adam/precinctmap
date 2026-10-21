@@ -4,7 +4,10 @@
 !.env.example
 
 # Data: results, boundaries, the DuckDB store. Public data, but never committed.
-data/
+# data/.gitkeep is tracked so a fresh clone has ./data owned by you (Docker would create it
+# as root, and the container's user couldn't write the store).
+data/*
+!data/.gitkeep
 *.duckdb
 *.duckdb.wal
 

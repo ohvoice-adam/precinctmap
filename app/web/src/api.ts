@@ -5,9 +5,17 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly detail: string = message,
   ) {
     super(message);
   }
+}
+
+/** What to tell the viewer when the first load fails: the server's reason when it gave one. */
+export function startupError(err: unknown): string {
+  if (err instanceof ApiError && err.status === 503) return `The map's data store isn't available: ${err.detail}`;
+  if (err instanceof ApiError) return `The map could not load its data (${err.message}). Reload to try again.`;
+  return "The map could not reach its server. Check that the API is running, then reload.";
 }
 
 async function getJson<T>(path: string, params: Record<string, string> = {}): Promise<T> {
@@ -20,7 +28,7 @@ async function getJson<T>(path: string, params: Record<string, string> = {}): Pr
     } catch {
       // non-JSON error body: keep the status text
     }
-    throw new ApiError(`${path}: ${detail}`, res.status);
+    throw new ApiError(`${path}: ${detail}`, res.status, detail);
   }
   return (await res.json()) as T;
 }

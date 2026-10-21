@@ -2,6 +2,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
 import "./ui/table.css";
 
+import { startupError } from "./api";
 import { App } from "./app";
 import { createHeader } from "./header";
 import { el } from "./ui/dom";
@@ -20,7 +21,7 @@ function mount(root: HTMLElement): void {
   const app = new App(sidebar, { stage, bar, body, mapEl });
   app.start().catch((err: unknown) => {
     console.error("precinctmap failed to start", err);
-    sidebar.append(el("p", { class: "error" }, "The map could not load its data. Check that the API is running, then reload."));
+    sidebar.append(el("p", { class: "error" }, startupError(err)));
   });
 }
 

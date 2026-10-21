@@ -14,6 +14,7 @@ from precinctmap import __version__
 from precinctmap.aggregate.reconcile import ReconciliationError
 from precinctmap.config import Settings, load_settings
 from precinctmap.ingest.errors import IngestError
+from precinctmap.io.db import StoreLockedError, StoreUnavailableError, get_connection
 from precinctmap.registry.store import BoundaryError
 from precinctmap.serve.geo import GeoNotFoundError
 from precinctmap.serve.results import NotFoundError
@@ -52,11 +53,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         (IngestError, 422),
         (BoundaryError, 422),
         (ReconciliationError, 500),
+        (StoreUnavailableError, 503),  # e.g. ./data not writable: say so instead of a bare 500
+        (StoreLockedError, 503),
     ):
         api.add_exception_handler(exc, _error(status))  # type: ignore[arg-type]
 
     @api.get("/api/health")
     def health() -> Health:
+        """Ok only when the store opens, so Docker's healthcheck catches an unusable ./data."""
+        get_connection(settings.db_path)
         return Health(status="ok", version=__version__)
 
     api.include_router(routes_read.router)

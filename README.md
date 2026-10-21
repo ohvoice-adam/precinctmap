@@ -108,6 +108,10 @@ docker compose up --build -d  # map and admin on http://127.0.0.1:8000
 
 ### First-time setup on a new machine
 
+The `data/` folder comes with the clone and must stay writable by the user the container runs as: 1000 by default. If `id -u` and `id -g` print something else, set `PRECINCTMAP_UID` and `PRECINCTMAP_GID` in `.env`. Until boundaries and elections are loaded, the map says no elections have been loaded yet.
+
+If the map says **"The map's data store isn't available"**, the message names the folder and the fix. Usually `data/` is owned by another user, for example root, after Docker created a missing folder. Run `sudo chown -R "$(id -u):$(id -g)" data`, then `docker compose up -d`.
+
 1. Copy the boundary files into `data/boundaries/`, matching the paths in `config/boundaries.toml`.
 2. Load the boundaries and build the precinct-to-area tables. This takes about a minute.
    ```bash
