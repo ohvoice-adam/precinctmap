@@ -18,6 +18,7 @@ import pandas as pd
 from precinctmap.catalog.calendar import ElectionType
 from precinctmap.config import Settings
 from precinctmap.ingest.checks import BoundaryMatch, boundary_match, long_format_check
+from precinctmap.ingest.combine import combine
 from precinctmap.ingest.detect import parse_file
 from precinctmap.ingest.errors import StagingError
 from precinctmap.ingest.identify import identify
@@ -64,6 +65,7 @@ def stage_file(
     staging_id = f"stg-{sha[:12]}"
     parsed = parse_file(path)
     ident = identify(path.name, parsed, override_date, override_type, override_certified)
+    parsed = combine(parsed, ident.election_id)  # reviewed combined contests (combine.py)
     vote_for = infer_vote_for(parsed)
     match = boundary_match(con, parsed, ident.election_date)
     election_id = ident.election_id
