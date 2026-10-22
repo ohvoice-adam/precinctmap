@@ -18,14 +18,13 @@ import pandas as pd
 from precinctmap.catalog.calendar import ElectionType
 from precinctmap.config import Settings
 from precinctmap.ingest.checks import BoundaryMatch, boundary_match, long_format_check
-from precinctmap.ingest.detect import detect_adapter
+from precinctmap.ingest.detect import parse_file
 from precinctmap.ingest.errors import StagingError
 from precinctmap.ingest.identify import identify
 from precinctmap.ingest.report import Report, ReviewInputs, build_report
 from precinctmap.ingest.report_text import render
 from precinctmap.ingest.tables import Tables, build_tables
 from precinctmap.ingest.votefor import infer_vote_for
-from precinctmap.io.xlsx import read_single_sheet
 
 
 @dataclass(frozen=True)
@@ -63,8 +62,7 @@ def stage_file(
     """
     sha = sha256_file(path)
     staging_id = f"stg-{sha[:12]}"
-    grid = read_single_sheet(path)
-    parsed = detect_adapter(grid, path.name).parse(grid)
+    parsed = parse_file(path)
     ident = identify(path.name, parsed, override_date, override_type, override_certified)
     vote_for = infer_vote_for(parsed)
     match = boundary_match(con, parsed, ident.election_date)

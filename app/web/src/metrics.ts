@@ -2,6 +2,7 @@
 // count, i.e. not over/under votes). Margins and leaders compare the contest-wide top two.
 
 import type { Metric, Selection } from "./state";
+import { TURNOUT_METRICS } from "./state";
 import type { FeatureResult, Results } from "./types";
 
 /** Areas with fewer valid votes than this are hatched, and the count shows in the tooltip. */
@@ -58,11 +59,27 @@ export function metricContext(results: Results, sel: Selection): MetricContext {
 
 const sum = (v: number[], idx: number[]): number => idx.reduce((s, i) => s + (v[i] ?? 0), 0);
 
-function turnoutValue(f: FeatureResult): AreaValue {
+/** Turnout measures. `valid` is the area's ballots cast (shown as the count); `value` is:
+ * turnout = ballots / registered; ballots; party_ballots = the party's ballots;
+ * party_turnout = party ballots / registered; party_share = party ballots / ballots. */
+function turnoutValue(ctx: MetricContext, f: FeatureResult): AreaValue {
+  const none: AreaValue = { status: "no_data", value: null, valid: 0, leader: null };
   const reg = f.reg ?? 0;
-  if (reg <= 0 || f.bal === null) return { status: "no_data", value: null, valid: 0, leader: null };
-  const status = reg < LOW_VOTE_THRESHOLD ? "low" : "value";
-  return { status, value: f.bal / reg, valid: f.bal, leader: null };
+  const bal = f.bal;
+  if (bal === null) return none;
+  const party = ctx.choiceIndex === null ? null : (f.v?.[ctx.choiceIndex] ?? 0);
+  const perRegistered = ctx.metric === "turnout" || ctx.metric === "party_turnout";
+  if (perRegistered && reg <= 0) return none;
+  if (ctx.metric === "party_share" && bal <= 0) return { status: "no_ballots", value: null, valid: 0, leader: null };
+  if (ctx.metric !== "turnout" && ctx.metric !== "ballots" && party === null) return none;
+  const value =
+    ctx.metric === "turnout" ? bal / reg
+    : ctx.metric === "ballots" ? bal
+    : ctx.metric === "party_turnout" ? (party ?? 0) / reg
+    : ctx.metric === "party_share" ? (party ?? 0) / bal
+    : (party ?? 0);
+  const base = ctx.metric === "party_share" ? bal : perRegistered ? reg : bal;
+  return { status: base < LOW_VOTE_THRESHOLD ? "low" : "value", value, valid: bal, leader: null };
 }
 
 function voteValue(ctx: MetricContext, v: number[], valid: number): Pick<AreaValue, "value" | "leader"> {
@@ -87,7 +104,7 @@ function voteValue(ctx: MetricContext, v: number[], valid: number): Pick<AreaVal
 
 export function areaValue(ctx: MetricContext, f: FeatureResult | undefined): AreaValue {
   if (!f) return { status: "no_data", value: null, valid: 0, leader: null };
-  if (ctx.metric === "turnout") return turnoutValue(f);
+  if (TURNOUT_METRICS.has(ctx.metric)) return turnoutValue(ctx, f);
   if (f.v === null) {
     const status = f.bal === 0 ? "no_ballots" : "not_on_ballot";
     return { status, value: null, valid: 0, leader: null };

@@ -159,6 +159,39 @@ class Results(BaseModel):
     features: dict[str, FeatureResult]
 
 
+class TurnoutParty(BaseModel):
+    party: str
+    label: str
+    ballots: float | None
+    of_registered: float | None  # party ballots / all registered voters
+    of_ballots: float | None  # party ballots / all ballots cast
+
+
+class TurnoutContribution(BaseModel):
+    precinct: str
+    split_share: float
+    method: str
+    weight_basis: str
+    precinct_ballots: int | None
+
+
+class TurnoutDetail(BaseModel):
+    feature_id: str
+    name: str
+    jurisdiction: str | None
+    geography: str
+    boundary_set_id: str
+    retroactive: bool
+    registered: float | None
+    ballots_cast: float | None
+    turnout: float | None
+    parties: list[TurnoutParty]
+    method: str | None
+    contributions: list[TurnoutContribution]
+    source_file: str
+    source_sha256: str
+
+
 class DetailChoice(ResultChoice):
     votes: float
     share: float | None

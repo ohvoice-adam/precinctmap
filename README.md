@@ -10,7 +10,8 @@ A map of Franklin County precinct election results. You can view results by prec
 1. **Pick what to see** in the panel on the left, from top to bottom:
    - **Year** and **Election**.
    - **Contest.** Type in the filter box to narrow a long list. In primaries, contests are grouped by party ballot.
-   - **Show.** For issues: yes share, the yes−no margin, or total votes. For candidates: one candidate's share, the margin between the top two, who leads in each area, or total votes. Turnout is available when the results file includes it.
+   - **Show.** For issues: yes share, the yes−no margin, or total votes. For candidates: one candidate's share, the margin between the top two, who leads in each area, or total votes.
+   - **Turnout** is the first entry in each election's contest list when the results file has registered voters and ballots. It shows turnout (ballots ÷ registered voters) and ballots cast. In primaries it also shows each party's ballots three ways: as a share of registered voters (the party shares add up to turnout), as a share of all ballots cast, and as a count. Pick the party under **Party ballot**.
    - **Map by.** Precinct, Columbus council district, city/village/township, or ZIP code area.
 2. **Read the colors with the legend.** Bins are fixed, so the same color always means the same range.
    - **Teal** (light to dark) means more of something: share, turnout or votes.

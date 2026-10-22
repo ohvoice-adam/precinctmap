@@ -42,6 +42,7 @@ class ChoiceSpec:
     name_display: str
     party: str | None
     kind: ChoiceKind
+    sheet: str = ""  # multi-sheet workbooks: the sheet `column` is in ('' = the only sheet)
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,7 @@ class ColumnCheck:
     precinct_sum: int
     out_of_county_sum: int
     county_total: int
+    sheet: str = ""  # as ChoiceSpec.sheet
 
     @property
     def ok(self) -> bool:

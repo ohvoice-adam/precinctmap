@@ -4,7 +4,7 @@ import type { AreaValue, MetricContext } from "../metrics";
 import { LOW_VOTE_THRESHOLD } from "../metrics";
 import type { MeasureStats } from "../measures/model";
 import { LOW_PARCEL_THRESHOLD, baseLabel, formatMoe, formatValue, isLow } from "../measures/model";
-import { METRIC_LABELS } from "../state";
+import { METRIC_LABELS, TURNOUT_METRICS } from "../state";
 import type { AreaCollection, Results } from "../types";
 import { STATUS_TEXT, percent, votes } from "./format";
 import type { TableRow, TableSpec } from "./table";
@@ -16,6 +16,8 @@ function cell(ctx: MetricContext, a: AreaValue, results: Results): string {
   const name = (i: number | undefined): string => (i === undefined ? "?" : results.choices[i]?.name ?? "?");
   switch (ctx.metric) {
     case "total":
+    case "ballots":
+    case "party_ballots":
       return votes(a.value);
     case "margin": {
       if (a.value === 0) return "Tied";
@@ -29,16 +31,20 @@ function cell(ctx: MetricContext, a: AreaValue, results: Results): string {
   }
 }
 
-function resultNote(a: AreaValue, method: string | null | undefined): string {
+function resultNote(a: AreaValue, method: string | null | undefined, turnout: boolean): string {
   if (a.status === "not_on_ballot" || a.status === "no_ballots" || a.status === "no_data") return STATUS_TEXT[a.status];
   const notes: string[] = [];
-  if (a.status === "low") notes.push(`Fewer than ${LOW_VOTE_THRESHOLD} votes`);
+  if (a.status === "low") notes.push(`Fewer than ${LOW_VOTE_THRESHOLD} ${turnout ? "registered voters or ballots" : "votes"}`);
   if (method === "allocated" || method === "mixed") notes.push("Includes estimates from split precincts");
   return notes.join("; ");
 }
 
 function valueLabel(ctx: MetricContext, results: Results): string {
-  if (ctx.metric === "share" && ctx.choiceIndex !== null) return `${results.choices[ctx.choiceIndex]?.name ?? "Candidate"} share`;
+  const choice = ctx.choiceIndex === null ? null : (results.choices[ctx.choiceIndex]?.name ?? null);
+  if (ctx.metric === "share" && choice) return `${choice} share`;
+  if (choice && ctx.metric === "party_turnout") return `${choice}, % of registered`;
+  if (choice && ctx.metric === "party_share") return `${choice}, % of ballots`;
+  if (choice && ctx.metric === "party_ballots") return choice;
   if (ctx.metric === "margin") return "Margin (points)";
   return METRIC_LABELS[ctx.metric];
 }
@@ -46,7 +52,7 @@ function valueLabel(ctx: MetricContext, results: Results): string {
 export function resultsTable(
   areas: AreaCollection, values: Map<string, AreaValue>, ctx: MetricContext, results: Results, contestName: string,
 ): TableSpec {
-  const turnout = ctx.metric === "turnout";
+  const turnout = TURNOUT_METRICS.has(ctx.metric);
   const rows = areas.features.map((f): TableRow => {
     const id = f.properties.feature_id;
     const a = values.get(id) ?? { status: "no_data" as const, value: null, valid: 0, leader: null };
@@ -58,10 +64,10 @@ export function resultsTable(
       display: cell(ctx, a, results),
       count: counted ? a.valid : null,
       countDisplay: counted ? votes(a.valid) : DASH,
-      note: resultNote(a, results.features[id]?.method),
+      note: resultNote(a, results.features[id]?.method, turnout),
     };
   });
-  return { caption: `${contestName} · ${results.geography_label}`, valueLabel: valueLabel(ctx, results), countLabel: turnout ? "Ballots" : "Valid votes", rows };
+  return { caption: `${contestName} · ${results.geography_label}`, valueLabel: valueLabel(ctx, results), countLabel: turnout ? "Ballots cast" : "Valid votes", rows };
 }
 
 function measureNote(stats: MeasureStats, has: boolean, low: boolean): string {

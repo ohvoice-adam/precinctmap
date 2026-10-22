@@ -36,15 +36,42 @@ describe("resolve", () => {
   });
 });
 
+const TURNOUT_GENERAL = GENERAL.contests.find((c) => c.type === "turnout")!;
+const TURNOUT_PRIMARY = PRIMARY.contests.find((c) => c.type === "turnout")!;
+
 describe("metricsFor", () => {
-  it("offers issue metrics, candidate metrics, and turnout only when the file has it", () => {
-    expect(metricsFor(GENERAL.contests[0]!, GENERAL)).toEqual(["yes_share", "margin", "total", "turnout"]);
-    expect(metricsFor(GENERAL.contests[1]!, GENERAL)).toEqual(["share", "margin", "leader", "total", "turnout"]);
-    expect(metricsFor(PRIMARY.contests[0]!, PRIMARY)).toEqual(["share", "total"]); // unopposed, no turnout
+  it("offers issue and candidate metrics; turnout lives in its own entry", () => {
+    expect(metricsFor(GENERAL.contests[0]!)).toEqual(["yes_share", "margin", "total"]);
+    expect(metricsFor(GENERAL.contests[1]!)).toEqual(["share", "margin", "leader", "total"]);
+    expect(metricsFor(PRIMARY.contests[0]!)).toEqual(["share", "total"]); // unopposed
   });
 
   it("drops margin and leader for an unopposed race", () => {
-    expect(metricsFor(GENERAL.contests[2]!, GENERAL)).not.toContain("margin");
+    expect(metricsFor(GENERAL.contests[2]!)).not.toContain("margin");
+  });
+
+  it("offers party ballot measures only when the file has party ballots", () => {
+    expect(metricsFor(TURNOUT_GENERAL)).toEqual(["turnout", "ballots"]);
+    expect(metricsFor(TURNOUT_PRIMARY)).toEqual(["turnout", "ballots", "party_turnout", "party_share", "party_ballots"]);
+  });
+});
+
+describe("turnout selection", () => {
+  it("is never the default contest, even though it covers every precinct", () => {
+    expect(resolve(CATALOG, { e: PRIMARY.election_id })?.contest).toBe("e2:dem:senate");
+  });
+
+  it("picks a party ballot for party measures and round-trips through the URL", () => {
+    const sel = resolve(CATALOG, { e: PRIMARY.election_id, c: TURNOUT_PRIMARY.contest_id, m: "party_share", ch: "t:Rep" })!;
+    expect([sel.metric, sel.choice]).toEqual(["party_share", "t:Rep"]);
+    expect(resolve(CATALOG, fromParams(`?${toParams(sel).toString()}`))).toEqual(sel);
+    const overall = resolve(CATALOG, { e: PRIMARY.election_id, c: TURNOUT_PRIMARY.contest_id, m: "turnout", ch: "t:Rep" })!;
+    expect(overall.choice).toBeNull();
+  });
+
+  it("falls back to overall turnout where there are no party ballots", () => {
+    const sel = resolve(CATALOG, { e: GENERAL.election_id, c: TURNOUT_GENERAL.contest_id, m: "party_share" })!;
+    expect([sel.metric, sel.choice]).toEqual(["turnout", null]);
   });
 });
 

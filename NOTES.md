@@ -5,7 +5,7 @@ Status as of 2026-10-21, at the end of Phase 7.
 ## What was built
 
 - **`precinctmap` library** (`src/precinctmap/`):
-  - **Staged ingest** of Franklin County BOE precinct exports, with two adapters (`fcboe_wide_2024`, `fcboe_wide_2025`) and exactly one allowed to claim a file.
+  - **Staged ingest** of Franklin County BOE precinct exports, with four adapters (`fcboe_sheets_2016`, `fcboe_classic_2020`, `fcboe_wide_2024`, `fcboe_wide_2025`) and exactly one allowed to claim a file. The 2020 layout splits same-name Democratic and Republican contests by party, and names repeated central-committee contests by the precincts that carried them (the file gives no district).
   - **Logged normalization**, and a reviewed table of typo fixes for display names.
   - **Election identification from evidence:** file name, content and calendar. A file is blocked rather than guessed at.
   - **Review reports** with the precinct match rate, county-total reconciliation and a long-format re-total.

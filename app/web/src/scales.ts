@@ -42,6 +42,8 @@ function bins(edges: number[], colors: string[], fmt: (x: number) => string, ope
 const SHARE_EDGES = [0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0001];
 const TURNOUT_EDGES = [0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0001];
 const TOTAL_EDGES = [0, 100, 250, 500, 1000, 2500, 5000, 10000, Number.POSITIVE_INFINITY];
+// One party's ballots over all registered voters: primary-ballot shares are usually small.
+const PARTY_TURNOUT_EDGES = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 1.0001];
 const YES_EDGES = [0, 0.2, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0001];
 const MARGIN_EDGES = [-1.0001, -0.3, -0.15, -0.05, 0.05, 0.15, 0.3, 1.0001];
 const DIVERGING = [...ARM_B].reverse().concat([NEUTRAL], ARM_A);
@@ -89,6 +91,14 @@ export function scaleFor(ctx: MetricContext, results: Results): Scale {
       return { kind: "categorical", title: "Leader", bins: leaderBins(ctx, results) };
     case "turnout":
       return { kind: "sequential", title: "Turnout (ballots ÷ registered)", bins: bins(TURNOUT_EDGES, SEQUENTIAL, pct) };
+    case "ballots":
+      return { kind: "sequential", title: "Ballots cast", bins: bins(TOTAL_EDGES, SEQUENTIAL, (x) => x.toLocaleString(), true) };
+    case "party_ballots":
+      return { kind: "sequential", title: name(ctx.choiceIndex ?? undefined), bins: bins(TOTAL_EDGES, SEQUENTIAL, (x) => x.toLocaleString(), true) };
+    case "party_turnout":
+      return { kind: "sequential", title: `${name(ctx.choiceIndex ?? undefined)} ÷ registered voters`, bins: bins(PARTY_TURNOUT_EDGES, SEQUENTIAL, pct) };
+    case "party_share":
+      return { kind: "sequential", title: `${name(ctx.choiceIndex ?? undefined)} ÷ all ballots`, bins: bins(SHARE_EDGES, SEQUENTIAL, pct) };
     default:
       return { kind: "sequential", title: "Valid votes", bins: bins(TOTAL_EDGES, SEQUENTIAL, (x) => x.toLocaleString(), true) };
   }

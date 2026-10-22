@@ -10,11 +10,13 @@ import { STATUS_TEXT } from "./format";
 
 const LOW_TEXT = {
   results: `Fewer than ${LOW_VOTE_THRESHOLD} votes (hatched)`,
+  turnout: `Fewer than ${LOW_VOTE_THRESHOLD} registered voters or ballots (hatched)`,
   property: `Fewer than ${LOW_PARCEL_THRESHOLD} parcels (hatched)`,
   census: "Large margin of error (hatched)",
 } as const;
 const EMPTY_TEXT = {
   results: `${STATUS_TEXT.not_on_ballot}, or no ballots cast`,
+  turnout: "No ballots cast, or no registered voters",
   property: "No residential parcels",
   census: "No estimate (no people or households)",
 } as const;
@@ -35,7 +37,7 @@ export function renderLegend(
   scale: Scale,
   geography: Geography,
   used: Set<number>,
-  dataset: "results" | "property" | "census" = "results",
+  dataset: "results" | "turnout" | "property" | "census" = "results",
 ): void {
   const bins = scale.kind === "categorical" ? scale.bins.filter((_, i) => used.has(i)) : [...scale.bins];
   if (scale.kind !== "categorical") bins.reverse(); // high values on top

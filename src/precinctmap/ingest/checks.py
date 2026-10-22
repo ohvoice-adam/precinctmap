@@ -42,7 +42,7 @@ def long_format_check(parsed: ParsedFile) -> LongFormatCheck:
 
     Proves no vote was lost turning the wide sheet into rows (absent cells must be zeros).
     """
-    totals = {c.column: c.county_total for c in parsed.column_checks}
+    totals = {(c.sheet, c.column): c.county_total for c in parsed.column_checks}
     summed: dict[tuple[int, int], int] = defaultdict(int)
     for r in parsed.results:
         summed[(r.contest_ordinal, r.choice_ordinal)] += r.votes
@@ -53,7 +53,7 @@ def long_format_check(parsed: ParsedFile) -> LongFormatCheck:
     for c in parsed.contests:
         for ch in c.choices:
             n += 1
-            got, want = summed.get((c.ordinal, ch.ordinal), 0), totals[ch.column]
+            got, want = summed.get((c.ordinal, ch.ordinal), 0), totals[(ch.sheet, ch.column)]
             if got != want:
                 failures.append(f"{c.name_display} | {ch.name_display}: rows {got} != total {want}")
     return LongFormatCheck(n, len(parsed.results), failures)

@@ -151,9 +151,11 @@ def choice_kind(label: str) -> ChoiceKind:
         "OVER VOTES": "over",
         "UNDER VOTES": "under",
         "WRITE-IN": "write_in",
+        "WRITE IN": "write_in",  # 2016
         "CANDIDATE WITHDRAWN": "withdrawn",
         "NO VALID PETITION FILED": "no_petition",
         "NO OTHER VALID PETITION FILED": "no_petition",
+        "NO CANDIDATE FILED": "no_petition",  # 2016
         "YES": "yes",
         "NO": "no",
     }

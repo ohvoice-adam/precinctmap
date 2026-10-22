@@ -1,7 +1,7 @@
 // Selection controls. Each lists only options that have data (the catalog only holds those).
 
 import type { Change, Metric, Selection } from "../state";
-import { METRIC_LABELS, contenders, findContest, findElection, metricsFor } from "../state";
+import { METRIC_LABELS, contenders, findContest, findElection, metricsFor, usesChoice } from "../state";
 import type { Catalog, CatalogContest, Geography } from "../types";
 import { el, labeled, option } from "./dom";
 
@@ -24,7 +24,10 @@ function contestGroups(contests: CatalogContest[], filter: string): Map<string, 
   const needle = filter.trim().toLowerCase();
   for (const c of contests) {
     if (needle && !c.name.toLowerCase().includes(needle)) continue;
-    const key = c.party ? (PARTY_GROUPS[c.party] ?? `${c.party} ballot`) : c.type === "issue" ? "Issues" : "Nonpartisan and general";
+    const key =
+      c.type === "turnout" ? "Turnout"
+      : c.party ? (PARTY_GROUPS[c.party] ?? `${c.party} ballot`)
+      : c.type === "issue" ? "Issues" : "Nonpartisan and general";
     groups.set(key, [...(groups.get(key) ?? []), c]);
   }
   return groups;
@@ -83,11 +86,15 @@ export class Controls {
     );
     this.fillContests(catalog, sel);
     this.metric.replaceChildren(
-      ...metricsFor(contest, election).map((m) => option(m, METRIC_LABELS[m], m === sel.metric)),
+      ...metricsFor(contest).map((m) => option(m, METRIC_LABELS[m], m === sel.metric)),
     );
-    this.choiceField.hidden = sel.metric !== "share";
+    const turnout = contest.type === "turnout";
+    this.choiceField.hidden = !usesChoice(sel.metric);
+    const label = this.choiceField.querySelector("label");
+    if (label) label.textContent = turnout ? "Party ballot" : "Candidate";
     this.choice.replaceChildren(
-      ...contenders(contest).map((c) => option(c.choice_id, c.party ? `${c.name} (${c.party})` : c.name, c.choice_id === sel.choice)),
+      ...contenders(contest).map((c) =>
+        option(c.choice_id, c.party && !turnout ? `${c.name} (${c.party})` : c.name, c.choice_id === sel.choice)),
     );
     this.geography.replaceChildren(
       ...election.geographies.map((g) => option(g.geography, g.label, g.geography === sel.geography)),

@@ -11,7 +11,8 @@ export type ChoiceKind =
   | "withdrawn"
   | "no_petition"
   | "over"
-  | "under";
+  | "under"
+  | "party"; // a party's ballots (turnout)
 
 export interface Choice {
   choice_id: string;
@@ -24,7 +25,7 @@ export interface CatalogContest {
   contest_id: string;
   name: string;
   party: string | null;
-  type: "candidate" | "issue";
+  type: "candidate" | "issue" | "turnout";
   vote_for: number | null;
   jurisdiction: string | null;
   precincts: number;
@@ -76,7 +77,7 @@ export interface Results {
   election_id: string;
   contest_id: string;
   contest: string;
-  type: "candidate" | "issue";
+  type: "candidate" | "issue" | "turnout";
   vote_for: number | null;
   geography: Geography;
   geography_label: string;
@@ -126,4 +127,22 @@ export interface AreaCollection extends GeoJSON.FeatureCollection<GeoJSON.Geomet
   boundary_set_id: string;
   retroactive: boolean;
   notes: string[];
+}
+
+/** /api/turnout/detail: one area's registered voters, ballots and party ballots. */
+export interface TurnoutDetail {
+  feature_id: string;
+  name: string;
+  jurisdiction: string | null;
+  geography: string;
+  boundary_set_id: string;
+  retroactive: boolean;
+  registered: number | null;
+  ballots_cast: number | null;
+  turnout: number | null;
+  parties: { party: string; label: string; ballots: number | null; of_registered: number | null; of_ballots: number | null }[];
+  method: string | null;
+  contributions: { precinct: string; split_share: number; method: string; weight_basis: string; precinct_ballots: number | null }[];
+  source_file: string;
+  source_sha256: string;
 }

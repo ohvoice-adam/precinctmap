@@ -1,14 +1,10 @@
 // Click detail panel: every choice's votes and share, method with split shares, source file.
 
-import type { Detail } from "../types";
+import type { Detail, TurnoutDetail } from "../types";
 import { compact, el } from "./dom";
-import { percent, votes } from "./format";
+import { METHOD_TEXT, percent, votes } from "./format";
+import { renderTurnoutDetail } from "./turnout-panel";
 
-const METHOD_TEXT: Record<string, string> = {
-  exact: "Exact: every precinct lies wholly inside this area.",
-  allocated: "Estimated: built from parts of split precincts, weighted by 2020 census block population.",
-  mixed: "Mostly exact; some precincts are split and their share is estimated by 2020 census block population.",
-};
 
 function choicesTable(d: Detail): HTMLElement {
   const rows = d.choices.map((c) =>
@@ -41,7 +37,11 @@ function contributions(d: Detail): HTMLElement | null {
   return el("details", {}, el("summary", {}, `${d.contributions.length} precincts`), el("ul", { class: "precincts" }, ...items));
 }
 
-export function renderDetail(target: HTMLElement, d: Detail, onClose: () => void): void {
+export function renderDetail(target: HTMLElement, d: Detail | TurnoutDetail, onClose: () => void): void {
+  if ("parties" in d) {
+    renderTurnoutDetail(target, d, onClose);
+    return;
+  }
   const close = el("button", { type: "button", class: "close", "aria-label": "Close details" }, "×");
   close.addEventListener("click", onClose);
   const turnout = d.turnout?.turnout;

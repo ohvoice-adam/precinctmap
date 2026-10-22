@@ -4,14 +4,25 @@
 
 import type { Catalog, CatalogContest, CatalogElection, Choice, Geography } from "./types";
 
-export type Metric = "share" | "yes_share" | "margin" | "leader" | "total" | "turnout";
+export type Metric =
+  | "share"
+  | "yes_share"
+  | "margin"
+  | "leader"
+  | "total"
+  // Turnout entry (contest `<election>:turnout`; its choices are party ballots):
+  | "turnout"
+  | "ballots"
+  | "party_turnout"
+  | "party_share"
+  | "party_ballots";
 
 export interface Selection {
   year: number;
   election: string;
   contest: string;
   metric: Metric;
-  choice: string | null; // only for the candidate "share" metric
+  choice: string | null; // the candidate ("share") or party ballot (party_* metrics)
   geography: Geography;
 }
 
@@ -23,27 +34,42 @@ export const METRIC_LABELS: Record<Metric, string> = {
   margin: "Margin between the top two",
   leader: "Leader by area",
   total: "Total votes",
-  turnout: "Turnout",
+  turnout: "Turnout (% of registered voters)",
+  ballots: "Ballots cast",
+  party_turnout: "Party ballots, % of registered voters",
+  party_share: "Party ballots, % of ballots cast",
+  party_ballots: "Party ballots, count",
 };
+
+const PARTY_METRICS: ReadonlySet<Metric> = new Set(["party_turnout", "party_share", "party_ballots"]);
+export const TURNOUT_METRICS: ReadonlySet<Metric> = new Set(["turnout", "ballots", ...PARTY_METRICS]);
+
+/** Metrics that need a choice: a candidate, or a party ballot. */
+export function usesChoice(metric: Metric): boolean {
+  return metric === "share" || PARTY_METRICS.has(metric);
+}
 
 /** Choices that count toward shares, minus placeholders like "No Valid Petition Filed". */
 export function contenders(contest: CatalogContest): Choice[] {
   return contest.choices.filter((c) => !["over", "under", "no_petition"].includes(c.kind));
 }
 
-export function metricsFor(contest: CatalogContest, election: CatalogElection): Metric[] {
-  const hasTurnout = election.turnout_parties.includes("ALL");
+export function metricsFor(contest: CatalogContest): Metric[] {
+  if (contest.type === "turnout") {
+    const parties = contenders(contest).length > 0;
+    return ["turnout", "ballots", ...(parties ? (["party_turnout", "party_share", "party_ballots"] as Metric[]) : [])];
+  }
   const many = contenders(contest).length >= 2;
-  const metrics: Metric[] =
-    contest.type === "issue"
-      ? ["yes_share", "margin", "total"]
-      : [...(["share"] as Metric[]), ...(many ? (["margin", "leader"] as Metric[]) : []), "total"];
-  return hasTurnout ? [...metrics, "turnout"] : metrics;
+  return contest.type === "issue"
+    ? ["yes_share", "margin", "total"]
+    : [...(["share"] as Metric[]), ...(many ? (["margin", "leader"] as Metric[]) : []), "total"];
 }
 
 function defaultContest(election: CatalogElection): CatalogContest | undefined {
-  // Widest contest first (countywide races and issues), ties by ballot order.
-  return [...election.contests].sort((a, b) => b.precincts - a.precincts)[0];
+  // Widest contest first (countywide races and issues), ties by ballot order. Turnout is
+  // listed first but never the default: a link without a contest lands on a race.
+  const races = election.contests.filter((c) => c.type !== "turnout");
+  return [...(races.length ? races : election.contests)].sort((a, b) => b.precincts - a.precincts)[0];
 }
 
 function pickElection(catalog: Catalog, raw: RawSelection): CatalogElection | undefined {
@@ -60,11 +86,11 @@ export function resolve(catalog: Catalog, raw: RawSelection): Selection | null {
   const contest =
     election.contests.find((c) => c.contest_id === raw.c) ?? defaultContest(election);
   if (!contest) return null;
-  const metrics = metricsFor(contest, election);
+  const metrics = metricsFor(contest);
   const metric = metrics.find((m) => m === raw.m) ?? metrics[0] ?? "total";
   const pool = contenders(contest);
   const choice =
-    metric === "share" ? (pool.find((c) => c.choice_id === raw.ch) ?? pool[0])?.choice_id ?? null : null;
+    usesChoice(metric) ? (pool.find((c) => c.choice_id === raw.ch) ?? pool[0])?.choice_id ?? null : null;
   const geos = election.geographies.map((g) => g.geography);
   const geography = geos.find((g) => g === raw.g) ?? geos[0] ?? "precinct";
   return { year: election.year, election: election.election_id, contest: contest.contest_id, metric, choice, geography };

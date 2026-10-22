@@ -12,6 +12,7 @@ import duckdb
 from precinctmap.serve.census import census_catalog
 from precinctmap.serve.labels import GEOGRAPHY_LABELS
 from precinctmap.serve.property import property_catalog
+from precinctmap.serve.turnout import turnout_contest
 
 _ELECTIONS = """
 SELECT e.election_id, e.election_date, e.election_type, e.label, e.certified, f.filename,
@@ -109,7 +110,8 @@ def catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
                 "source_file": filename,
                 "turnout_parties": parties or [],
                 "geographies": geographies[e_id],
-                "contests": contests.get(e_id, []),
+                # Turnout leads the contest list when the file had registered and ballot counts.
+                "contests": [t for t in [turnout_contest(con, e_id)] if t] + contests.get(e_id, []),
             }
         )
     return {

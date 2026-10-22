@@ -76,6 +76,7 @@ def build_tables(
                 "contest_id": cids[c.ordinal],
                 "source_ordinal": ch.ordinal,
                 "source_column": ch.column + 1,
+                "source_sheet": ch.sheet or None,
                 "name_raw": ch.name_raw,
                 "name_display": ch.name_display,
                 "party": ch.party,
@@ -88,7 +89,7 @@ def build_tables(
     )
     return Tables(
         contests=contests.astype({"vote_for": "Int64"}),
-        choices=choices,
+        choices=choices.astype({"source_sheet": "string"}),  # all-NULL for one-sheet files
         precinct_results=_results(parsed, election_id, file_id, cids, chids),
         precinct_sources=_sources(parsed, election_id, file_id),
         precinct_turnout=_turnout(parsed, election_id, file_id),

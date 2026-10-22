@@ -4,7 +4,14 @@
 import type { AreaValue } from "../metrics";
 import { LOW_VOTE_THRESHOLD } from "../metrics";
 import type { Metric } from "../state";
+import { TURNOUT_METRICS } from "../state";
 import type { Results } from "../types";
+
+export const METHOD_TEXT: Record<string, string> = {
+  exact: "Exact: every precinct lies wholly inside this area.",
+  allocated: "Estimated: built from parts of split precincts, weighted by 2020 census block population.",
+  mixed: "Mostly exact; some precincts are split and their share is estimated by 2020 census block population.",
+};
 
 export const STATUS_TEXT = {
   not_on_ballot: "Contest not on the ballot here",
@@ -22,13 +29,22 @@ export function percent(x: number, digits = 1): string {
   return `${(x * 100).toFixed(digits)}%`;
 }
 
-export function metricText(metric: Metric, a: AreaValue, results: Results, sides: [string, string]): string {
+/** `choice`: the selected candidate or party ballot's name (party_* metrics). */
+export function metricText(metric: Metric, a: AreaValue, results: Results, sides: [string, string], choice = ""): string {
   if (a.value === null) return "";
   switch (metric) {
     case "total":
       return `${votes(a.value)} valid votes`;
     case "turnout":
       return `${percent(a.value)} turnout`;
+    case "ballots":
+      return `${votes(a.value)} ballots cast`;
+    case "party_ballots":
+      return `${votes(a.value)} ${choice.toLowerCase()}`;
+    case "party_turnout":
+      return `${choice}: ${percent(a.value)} of registered voters`;
+    case "party_share":
+      return `${choice}: ${percent(a.value)} of ballots cast`;
     case "margin": {
       const pts = (Math.abs(a.value) * 100).toFixed(1);
       return a.value === 0 ? "Tied" : `${a.value > 0 ? sides[0] : sides[1]} ahead by ${pts} points`;
@@ -50,17 +66,19 @@ export function tooltipLines(
   results: Results,
   sides: [string, string],
   method?: string | null,
+  choice = "",
 ): string[] {
   const lines = [name];
   if (a.status === "not_on_ballot" || a.status === "no_ballots" || a.status === "no_data") {
     lines.push(STATUS_TEXT[a.status]);
     return lines;
   }
-  const text = metricText(metric, a, results, sides);
+  const text = metricText(metric, a, results, sides, choice);
   if (text) lines.push(text);
-  const count = metric === "turnout" ? `${votes(a.valid)} ballots` : `${votes(a.valid)} valid votes`;
-  if (metric !== "total") lines.push(count);
-  if (a.status === "low") lines.push(`Fewer than ${LOW_VOTE_THRESHOLD} votes: read with care`);
+  const turnout = TURNOUT_METRICS.has(metric);
+  if (metric !== "total" && metric !== "ballots") lines.push(`${votes(a.valid)} ${turnout ? "ballots cast" : "valid votes"}`);
+  const few = metric === "party_share" || metric === "ballots" || metric === "party_ballots" ? "ballots" : turnout ? "registered voters" : "votes";
+  if (a.status === "low") lines.push(`Fewer than ${LOW_VOTE_THRESHOLD} ${few}: read with care`);
   if (method === "allocated" || method === "mixed") lines.push("Includes estimates from split precincts");
   return lines;
 }

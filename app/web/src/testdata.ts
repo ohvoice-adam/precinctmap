@@ -34,17 +34,26 @@ export const CATALOG: Catalog = {
           jurisdiction: null, precincts: 10, other_counties: [],
           choices: [choice("s", "Sam Solo", "candidate"), choice("so", "OVER VOTES", "over")],
         },
+        {
+          contest_id: "franklin-2025-11-04-general:turnout", name: "Turnout", party: null, type: "turnout",
+          vote_for: null, jurisdiction: null, precincts: 889, other_counties: [], choices: [],
+        },
       ],
     },
     {
       election_id: "franklin-2024-03-19-primary", date: "2024-03-19", year: 2024, type: "primary",
-      label: "March 19, 2024 primary", certified: true, source_file: "p.xlsx", turnout_parties: [],
+      label: "March 19, 2024 primary", certified: true, source_file: "p.xlsx", turnout_parties: ["ALL", "Dem", "Rep"],
       geographies: [{ geography: "precinct", label: "Precinct", boundary_set_id: "pr", retroactive: true }],
       contests: [
         {
           contest_id: "e2:dem:senate", name: "U.S. Senator", party: "Dem", type: "candidate", vote_for: null,
           jurisdiction: null, precincts: 888, other_counties: [],
           choices: [choice("x", "Sherrod Brown", "candidate", "Dem")],
+        },
+        {
+          contest_id: "franklin-2024-03-19-primary:turnout", name: "Turnout", party: null, type: "turnout",
+          vote_for: null, jurisdiction: null, precincts: 888, other_counties: [],
+          choices: [choice("t:Dem", "Democratic ballots", "party", "Dem"), choice("t:Rep", "Republican ballots", "party", "Rep")],
         },
       ],
     },

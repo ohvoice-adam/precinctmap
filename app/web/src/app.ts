@@ -176,7 +176,8 @@ export class App {
     this.view = { results, ctx, values };
     this.table.render(resultsTable(areas, values, ctx, results, findContest(this.catalog, sel).name));
     this.map.paint(scale.bins.map((b) => b.color), states);
-    renderLegend(this.legend, scale, sel.geography, new Set([...states.values()].map((s) => s.bin)));
+    const legendKind = results.type === "turnout" ? "turnout" : "results";
+    renderLegend(this.legend, scale, sel.geography, new Set([...states.values()].map((s) => s.bin)), legendKind);
     this.renderSidebar(sel, results);
   }
 
@@ -210,10 +211,13 @@ export class App {
       ),
     );
     this.notes.replaceChildren(...(results.notes.length ? [el("h2", {}, "Notes"), el("ul", {}, ...results.notes.map((n) => el("li", {}, n)))] : []));
-    const link = (kind: "csv" | "geojson", label: string): HTMLAnchorElement =>
-      el("a", { href: exportUrl(kind, sel.election, sel.contest, sel.geography), download: true }, label);
+    const link = (kind: "csv" | "geojson", label: string): HTMLAnchorElement | null => {
+      const href = exportUrl(kind, sel.election, sel.contest, sel.geography);
+      return href ? el("a", { href, download: true }, label) : null;
+    };
+    const geojson = link("geojson", "GeoJSON"); // turnout exports CSV only
     this.exports.replaceChildren(
-      el("h2", {}, "Export this view"), link("csv", "CSV"), " · ", link("geojson", "GeoJSON"),
+      ...compact(el("h2", {}, "Export this view"), link("csv", "CSV"), geojson ? " · " : null, geojson),
       el("p", { class: "source" }, `Source: ${results.source_file}`),
     );
   }
@@ -240,7 +244,8 @@ export class App {
     const { results, ctx, values } = this.view;
     const v = values.get(hit.featureId) ?? { status: "no_data" as const, value: null, valid: 0, leader: null };
     const method = results.features[hit.featureId]?.method ?? null;
-    this.tooltip.show(tooltipLines(hit.name, ctx.metric, v, results, marginSides(results, ctx.topTwo), method), x, y);
+    const choice = ctx.choiceIndex === null ? "" : (results.choices[ctx.choiceIndex]?.name ?? "");
+    this.tooltip.show(tooltipLines(hit.name, ctx.metric, v, results, marginSides(results, ctx.topTwo), method, choice), x, y);
   }
 
   private async openDetail(featureId: string, fromMap = false): Promise<void> {

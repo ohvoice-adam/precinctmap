@@ -1,5 +1,5 @@
 import type { Dataset, MeasureDetail, MeasureStats } from "./measures/model";
-import type { AreaCollection, Catalog, Detail, Results } from "./types";
+import type { AreaCollection, Catalog, Detail, Results, TurnoutDetail } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -52,11 +52,18 @@ export function fetchGeo(geography: string, date: string): Promise<AreaCollectio
   return hit;
 }
 
+/** Turnout is listed as the contest `<election>:turnout` and served by /api/turnout. */
+export function isTurnout(contest: string): boolean {
+  return contest.endsWith(":turnout");
+}
+
 export function fetchResults(election: string, contest: string, geography: string): Promise<Results> {
   const key = `${election}|${contest}|${geography}`;
   let hit = resultsCache.get(key);
   if (!hit) {
-    hit = getJson<Results>("/api/results", { election, contest, geography });
+    hit = isTurnout(contest)
+      ? getJson<Results>("/api/turnout", { election, geography })
+      : getJson<Results>("/api/results", { election, contest, geography });
     hit.catch(() => resultsCache.delete(key));
     resultsCache.set(key, hit);
   }
@@ -68,11 +75,16 @@ export function fetchDetail(
   contest: string,
   geography: string,
   feature: string,
-): Promise<Detail> {
+): Promise<Detail | TurnoutDetail> {
+  if (isTurnout(contest)) return getJson<TurnoutDetail>("/api/turnout/detail", { election, geography, feature });
   return getJson<Detail>("/api/results/detail", { election, contest, geography, feature });
 }
 
-export function exportUrl(kind: "csv" | "geojson", election: string, contest: string, geography: string): string {
+/** Download link for the current view; turnout exports CSV only (null for GeoJSON). */
+export function exportUrl(kind: "csv" | "geojson", election: string, contest: string, geography: string): string | null {
+  if (isTurnout(contest)) {
+    return kind === "csv" ? `/api/turnout/export.csv?${new URLSearchParams({ election, geography }).toString()}` : null;
+  }
   return `/api/export.${kind}?${new URLSearchParams({ election, contest, geography }).toString()}`;
 }
 
