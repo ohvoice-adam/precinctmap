@@ -1,7 +1,8 @@
 """Format detection: exactly one adapter must claim a file, or ingest stops.
 
-Single-sheet files go to the grid adapters; multi-sheet workbooks go to the workbook adapters,
-which see every sheet and its merged cells.
+Grid adapters see a single sheet's cells. Workbook adapters see every sheet with its merged
+cells (multi-sheet files, and single-sheet layouts whose contest spans are merged cells).
+Exactly one adapter of either kind must claim a file.
 """
 
 from collections.abc import Callable
@@ -10,6 +11,8 @@ from pathlib import Path
 
 from precinctmap.ingest.adapters import (
     fcboe_classic_2020,
+    fcboe_general_2016,
+    fcboe_general_2020,
     fcboe_sheets_2016,
     fcboe_wide_2024,
     fcboe_wide_2025,
@@ -38,24 +41,24 @@ class WorkbookAdapter:
 
 ADAPTERS: tuple[Adapter, ...] = tuple(
     Adapter(m.NAME, m.VERSION, m.detect, m.parse)
-    for m in (fcboe_classic_2020, fcboe_wide_2024, fcboe_wide_2025)
+    for m in (fcboe_classic_2020, fcboe_general_2020, fcboe_wide_2024, fcboe_wide_2025)
 )
-WORKBOOK_ADAPTERS: tuple[WorkbookAdapter, ...] = (
-    WorkbookAdapter(
-        fcboe_sheets_2016.NAME,
-        fcboe_sheets_2016.VERSION,
-        fcboe_sheets_2016.detect,
-        fcboe_sheets_2016.parse,
-    ),
+WORKBOOK_ADAPTERS: tuple[WorkbookAdapter, ...] = tuple(
+    WorkbookAdapter(m.NAME, m.VERSION, m.detect, m.parse)
+    for m in (fcboe_sheets_2016, fcboe_general_2016)
 )
+
+
+def _unknown(filename: str, head: list[str]) -> UnknownLayoutError:
+    return UnknownLayoutError(
+        f"{filename}: no adapter recognizes this layout (first headers: {head}). "
+        "Add a sample to data/samples/ and write an adapter for it."
+    )
 
 
 def _one[T](hits: list[T], names: list[str], filename: str, head: list[str]) -> T:
     if not hits:
-        raise UnknownLayoutError(
-            f"{filename}: no adapter recognizes this layout (first headers: {head}). "
-            "Add a sample to data/samples/ and write an adapter for it."
-        )
+        raise _unknown(filename, head)
     if len(hits) > 1:
         raise AmbiguousLayoutError(f"{filename}: claimed by {names}")
     return hits[0]
@@ -74,8 +77,17 @@ def detect_workbook_adapter(sheets: list[Sheet], filename: str) -> WorkbookAdapt
 
 
 def parse_file(path: Path) -> ParsedFile:
-    """Read `path` and parse it with the one adapter that claims it."""
+    """Read `path` and parse it with the one adapter (grid or workbook) that claims it."""
     sheets = read_workbook(path)
-    if len(sheets) == 1:
-        return detect_adapter(sheets[0].grid, path.name).parse(sheets[0].grid)
-    return detect_workbook_adapter(sheets, path.name).parse(sheets)
+    grid = sheets[0].grid if len(sheets) == 1 else None
+    grid_hits = [a for a in ADAPTERS if grid is not None and a.detect(grid)]
+    book_hits = [a for a in WORKBOOK_ADAPTERS if a.detect(sheets)]
+    if len(grid_hits) + len(book_hits) > 1:
+        names = [a.name for a in grid_hits] + [a.name for a in book_hits]
+        raise AmbiguousLayoutError(f"{path.name}: claimed by {names}")
+    if grid_hits and grid is not None:
+        return grid_hits[0].parse(grid)
+    if book_hits:
+        return book_hits[0].parse(sheets)
+    head = [str(v) for v in grid[0][:6]] if grid else [s.name for s in sheets]
+    raise _unknown(path.name, head)
