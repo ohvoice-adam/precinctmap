@@ -10,7 +10,7 @@ import type { GeoJSONSource, MapGeoJSONFeature, MapMouseEvent } from "maplibre-g
 import type { AreaCollection } from "../types";
 import { BASEMAP_STYLE_URL, initialView } from "./config";
 import {
-  FILL_OPACITY, HATCH_OPACITY, LINE_COLOR, LINE_WIDTH, STATUS_COLORS, fillColor, hatchImage, outsideMask,
+  FILL_OPACITY, HATCH_OPACITY, LINE_COLOR, LINE_WIDTH, STATUS_COLORS, dotsImage, fillColor, hatchImage, outsideMask,
 } from "./style";
 
 export interface AreaState {
@@ -60,7 +60,7 @@ export class AreaMap {
   private addLayers(): void {
     const m = this.map;
     m.addImage("hatch", hatchImage());
-    m.addImage("hatch-back", hatchImage(true));
+    m.addImage("dots", dotsImage());
     m.addSource("context", { type: "geojson", data: EMPTY });
     m.addSource("areas", { type: "geojson", data: EMPTY, promoteId: "feature_id" });
     m.addSource("mask", { type: "geojson", data: EMPTY });
@@ -69,7 +69,7 @@ export class AreaMap {
     const add = (layer: Parameters<MlMap["addLayer"]>[0]): void => { m.addLayer(layer, labels); };
     add({ id: "context-fill", type: "fill", source: "context",
       paint: { "fill-color": STATUS_COLORS.not_in_columbus, "fill-opacity": 0.95 } });
-    add({ id: "context-hatch", type: "fill", source: "context", paint: { "fill-pattern": "hatch-back" } });
+    add({ id: "context-dots", type: "fill", source: "context", paint: { "fill-pattern": "dots" } });
     add({ id: "context-line", type: "line", source: "context",
       paint: { "line-color": "#ffffff", "line-width": 0.4 } });
     add({ id: "areas-fill", type: "fill", source: "areas",

@@ -18,7 +18,7 @@ A map of Franklin County precinct election results. You can view results by prec
    - Colors never stand for a party.
    - **White** means the contest was not on the ballot there, or nobody voted there. It is never "zero".
    - **Hatched (diagonal lines)** means fewer than 25 votes, so treat the percentage with care.
-   - **Gray with diagonal lines** (council districts only) means the area is not in Columbus.
+   - **Gray with dots** (council districts only) means the area is not in Columbus.
    - **Pale area outside the county line** means no data: only Franklin County results are loaded.
 3. **Hover** over an area for its name, the value, and the number of votes.
 4. **Click** an area for the full breakdown: every choice's votes and share, turnout, and the precincts it was built from. The panel also names the official file the numbers come from.

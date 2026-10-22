@@ -10,8 +10,9 @@ Rules (CLAUDE.md): colorblind-safe, fixed bins, never party red or blue, and int
 
 Non-data states never look like data:
 - White: contest not on the ballot, no ballots cast, or no data.
-- Gray with a 135° hatch: not in Columbus (council view only).
-- 45° hatch over the data color: fewer than 25 valid votes.
+- Gray with dots: not in Columbus (council view only).
+- Diagonal hatch rising left to right ("/") over the data color: fewer than 25 valid votes (property: 25 parcels; census: margin of error too large). It's the only diagonal pattern.
+- Legend swatches are drawn from the same pixel tiles the map uses (`hatchImage`, `dotsImage` and `patternBackground` in `app/web/src/map/style.ts`), so the legend can't drift from the map.
 - Opaque off-white mask: outside Franklin County.
 
 Colors follow a candidate's contest-wide rank, never their party.

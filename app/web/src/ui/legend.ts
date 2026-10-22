@@ -3,7 +3,7 @@
 import { LOW_VOTE_THRESHOLD } from "../metrics";
 import { LOW_PARCEL_THRESHOLD } from "../measures/model";
 import type { Scale } from "../scales";
-import { STATUS_COLORS } from "../map/style";
+import { STATUS_COLORS, dotsImage, hatchImage, patternBackground } from "../map/style";
 import type { Geography } from "../types";
 import { el } from "./dom";
 import { STATUS_TEXT } from "./format";
@@ -19,11 +19,12 @@ const EMPTY_TEXT = {
   census: "No estimate (no people or households)",
 } as const;
 
-function swatch(color: string, label: string, extraClass = ""): HTMLElement {
+/** `background`: a color, or a pattern from `patternBackground` (the map's own tiles). */
+function swatch(background: string, label: string, extraClass = ""): HTMLElement {
   return el(
     "li",
     {},
-    el("span", { class: `swatch ${extraClass}`.trim(), style: `background:${color}`, "aria-hidden": "true" }),
+    el("span", { class: `swatch ${extraClass}`.trim(), style: `background:${background}`, "aria-hidden": "true" }),
     el("span", {}, label),
   );
 }
@@ -39,11 +40,10 @@ export function renderLegend(
   const bins = scale.kind === "categorical" ? scale.bins.filter((_, i) => used.has(i)) : [...scale.bins];
   if (scale.kind !== "categorical") bins.reverse(); // high values on top
   const states = [
-    el("li", {}, el("span", { class: "swatch hatch", "aria-hidden": "true" }),
-      el("span", {}, LOW_TEXT[dataset])),
+    swatch(patternBackground(hatchImage(), "#ffffff"), LOW_TEXT[dataset]),
     swatch(STATUS_COLORS.not_on_ballot, EMPTY_TEXT[dataset], "outlined"),
     geography === "council_district"
-      ? el("li", {}, el("span", { class: "swatch hatch-back", "aria-hidden": "true" }), el("span", {}, STATUS_TEXT.not_in_columbus))
+      ? swatch(patternBackground(dotsImage(), STATUS_COLORS.not_in_columbus), STATUS_TEXT.not_in_columbus)
       : null,
     swatch(STATUS_COLORS.outside_county, "Outside Franklin County: no data", "outlined"),
   ];

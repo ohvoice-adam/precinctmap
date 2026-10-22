@@ -182,14 +182,6 @@ button:focus-visible {
   border: 1px solid rgba(11, 11, 11, 0.08);
 }
 
-.swatch.hatch {
-  background: repeating-linear-gradient(45deg, #ffffff 0 3px, #8a8984 3px 4px);
-}
-
-.swatch.hatch-back {
-  background: repeating-linear-gradient(135deg, #f1f0ec 0 3px, #8a8984 3px 4px);
-}
-
 .swatch.outlined {
   border-color: var(--ink-2);
 }

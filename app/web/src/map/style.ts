@@ -8,7 +8,7 @@ export const STATUS_COLORS = {
   not_on_ballot: "#ffffff",
   no_ballots: "#ffffff",
   no_data: "#ffffff",
-  not_in_columbus: "#f1f0ec", // plus a 135° hatch
+  not_in_columbus: "#f1f0ec", // plus a dot pattern (dotsImage)
   outside_county: "#f4f3ef",
 } as const;
 
@@ -65,19 +65,49 @@ export const LINE_WIDTH: ExpressionSpecification = [
   0.6,
 ];
 
-/** Hairline hatch for fill-pattern: 45° marks low vote counts, 135° marks "not in Columbus". */
-export function hatchImage(mirror = false, size = 8): { width: number; height: number; data: Uint8Array } {
+export interface PatternImage {
+  width: number;
+  height: number;
+  data: Uint8Array; // RGBA, rows top to bottom
+}
+
+const PATTERN_INK = [82, 81, 78] as const; // secondary ink
+
+function tile(size: number, lit: (x: number, y: number) => boolean, alpha: number): PatternImage {
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const d = mirror ? (x - y + size) % size : (x + y) % size;
-      if (d === 0 || d === size - 1) {
-        const o = (y * size + x) * 4;
-        data.set([82, 81, 78, mirror ? 70 : 150], o); // secondary ink; the 135° context hatch is lighter
-      }
-    }
+    for (let x = 0; x < size; x++) if (lit(x, y)) data.set([...PATTERN_INK, alpha], (y * size + x) * 4);
   }
   return { width: size, height: size, data };
+}
+
+/** Low counts: a hairline diagonal hatch rising left to right ("/"). The only diagonal pattern. */
+export function hatchImage(size = 8): PatternImage {
+  return tile(size, (x, y) => (x + y) % size === 0 || (x + y) % size === size - 1, 150);
+}
+
+/** "Not in Columbus": a staggered grid of 2 px dots, so it never reads as the low-count hatch. */
+export function dotsImage(size = 8): PatternImage {
+  const half = size / 2;
+  const dot = (x: number, y: number, cx: number, cy: number): boolean => x >= cx && x < cx + 2 && y >= cy && y < cy + 2;
+  return tile(size, (x, y) => dot(x, y, 1, 1) || dot(x, y, 1 + half, 1 + half), 110);
+}
+
+/** A CSS background drawing `img` exactly as the map does (1 image px = 1 CSS px) over `base`,
+ * so legend swatches can never drift from the map's patterns. */
+export function patternBackground(img: PatternImage, base: string): string {
+  const rects: string[] = [];
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const o = (y * img.width + x) * 4;
+      const a = img.data[o + 3] ?? 0;
+      if (a === 0) continue;
+      const rgb = `rgb(${img.data[o] ?? 0},${img.data[o + 1] ?? 0},${img.data[o + 2] ?? 0})`;
+      rects.push(`<rect x='${x}' y='${y}' width='1' height='1' fill='${rgb}' fill-opacity='${(a / 255).toFixed(3)}'/>`);
+    }
+  }
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${img.width}' height='${img.height}' shape-rendering='crispEdges'>${rects.join("")}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 0 0 / ${img.width}px ${img.height}px repeat ${base}`;
 }
 
 /** A world polygon with the county cut out: covers everything outside Franklin County. */
