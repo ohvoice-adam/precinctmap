@@ -6,9 +6,11 @@ import sys
 import typer
 
 from precinctmap import __version__
+from precinctmap.bundle.export import BundleError
 from precinctmap.catalog.queries import contests_summary, elections_summary
 from precinctmap.cli_aggregate import aggregate_app
 from precinctmap.cli_boundaries import boundaries_app
+from precinctmap.cli_bundle import bundle_app
 from precinctmap.cli_census import census_app
 from precinctmap.cli_ingest import ingest
 from precinctmap.cli_parcels import addresses_app, parcels_app
@@ -27,6 +29,7 @@ app.add_typer(aggregate_app, name="aggregate")
 app.add_typer(addresses_app, name="addresses")
 app.add_typer(parcels_app, name="parcels")
 app.add_typer(census_app, name="census")
+app.add_typer(bundle_app, name="bundle")
 app.command()(serve)
 
 
@@ -106,7 +109,13 @@ def main() -> None:
     except StoreLockedError as exc:
         log.error("%s", exc)
         sys.exit(2)
-    except (IngestError, BoundaryError, StoreUnavailableError, FileNotFoundError) as exc:
+    except (
+        IngestError,
+        BoundaryError,
+        BundleError,
+        StoreUnavailableError,
+        FileNotFoundError,
+    ) as exc:
         # Expected failures (bad input, staging state, missing files): the message says what to
         # do, so no traceback unless --verbose asked for one.
         log.error("%s", exc)

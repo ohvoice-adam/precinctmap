@@ -113,6 +113,19 @@ The `data/` folder comes with the clone and must stay writable by the user the c
 
 If the map says **"The map's data store isn't available"**, the message names the folder and the fix. Usually `data/` is owned by another user, for example root, after Docker created a missing folder. Run `sudo chown -R "$(id -u):$(id -g)" data`, then `docker compose up -d`.
 
+**The quick way: load the data bundle.** Each data release on GitHub has `precinctmap-data.tar.gz`: every loaded election, boundary, parcel and census table, normalized, plus the original election spreadsheets and `DATA.md`. `DATA.md` lists each dataset's vintage, publisher, where to get updates, and how often it changes. Into a new, empty install, with the app stopped:
+
+```bash
+gh release download --repo ohvoice-adam/precinctmap --pattern 'precinctmap-data.tar.gz*' --dir data
+cd data && sha256sum -c precinctmap-data.tar.gz.sha256 && cd ..
+docker compose run --rm precinctmap precinctmap bundle load data/precinctmap-data.tar.gz
+docker compose up -d
+```
+
+`bundle load` checks every file against its sha256, refuses a store that already has data, rebuilds the results by geography, and re-checks every total. `precinctmap bundle info <file>` shows what a bundle contains without loading it.
+
+**Or build from the source files:**
+
 1. Copy the boundary files into `data/boundaries/`, matching the paths in `config/boundaries.toml`.
 2. Load the boundaries and build the precinct-to-area tables. This takes about a minute.
    ```bash
@@ -145,6 +158,20 @@ docker compose run --rm precinctmap precinctmap census fetch --year 2024 --as-of
 docker compose run --rm precinctmap precinctmap census load --year 2024 --as-of YYYY-MM-DD   # review
 docker compose run --rm precinctmap precinctmap census load --year 2024 --as-of YYYY-MM-DD --commit
 ```
+
+### Publishing a data release
+
+After loading new data (an election, a parcel file, a census release), with the app stopped:
+
+```bash
+docker compose stop
+docker compose run --rm precinctmap precinctmap bundle export --out data/dist
+docker compose up -d
+gh release create data-$(date +%F) data/dist/precinctmap-data.tar.gz data/dist/precinctmap-data.tar.gz.sha256 \
+  --title "Data $(date +%F)" --notes-file data/dist/DATA.md
+```
+
+Export only from a stopped app. A store copied while the app runs can be missing its latest writes.
 
 ### When something changes
 
