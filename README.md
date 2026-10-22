@@ -113,16 +113,30 @@ The `data/` folder comes with the clone and must stay writable by the user the c
 
 If the map says **"The map's data store isn't available"**, the message names the folder and the fix. Usually `data/` is owned by another user, for example root, after Docker created a missing folder. Run `sudo chown -R "$(id -u):$(id -g)" data`, then `docker compose up -d`.
 
-**The quick way: load the data bundle.** Each data release on GitHub has `precinctmap-data.tar.gz`: every loaded election, boundary, parcel and census table, normalized, plus the original election spreadsheets and `DATA.md`. `DATA.md` lists each dataset's vintage, publisher, where to get updates, and how often it changes. Into a new, empty install, with the app stopped:
+**The quick way: load a data release.** Each data release on GitHub has `precinctmap-data.tar.gz`: every loaded election, boundary, parcel and census table, normalized, plus the original election spreadsheets and `DATA.md`. `DATA.md` lists each dataset's vintage, publisher, where to get updates, and how often it changes.
+
+One script installs a release on a new machine or updates a running one:
 
 ```bash
-gh release download --repo ohvoice-adam/precinctmap --pattern 'precinctmap-data.tar.gz*' --dir data
-cd data && sha256sum -c precinctmap-data.tar.gz.sha256 && cd ..
-docker compose run --rm precinctmap precinctmap bundle load data/precinctmap-data.tar.gz
-docker compose up -d
+scripts/update-data.sh              # latest release; shows what's in it, then asks before stopping the map
+scripts/update-data.sh --dry-run    # download, verify and describe only; changes nothing
+scripts/update-data.sh --tag data-2026-10-22.2   # a specific release
+scripts/update-data.sh --file path/to/precinctmap-data.tar.gz --yes   # an archive you already have, no prompt
 ```
 
-`bundle load` checks every file against its sha256, refuses a store that already has data, rebuilds the results by geography, and re-checks every total. `precinctmap bundle info <file>` shows what a bundle contains without loading it.
+The script:
+- **Downloads** the release, with `gh` if it's installed (needed while the repository is private), otherwise `curl`.
+- **Verifies** the archive's checksum.
+- **Builds** the app for the code you have checked out.
+- **Shows** what the release contains.
+- **Backs up** the current data to `data/backups/`.
+- **Loads** the release and restarts the map.
+
+The load checks every file's checksum, rebuilds the results by geography and re-checks every total. If anything fails, the script puts the previous data back and restarts the map on it. The map is down for about a minute.
+
+When it finishes, the script prints the command to go back to the previous data. Backups are never deleted automatically, and each one is about 1 GB.
+
+Loading a release replaces everything. If you uploaded elections through this server's admin page and they aren't in the release, they're replaced too. `precinctmap bundle info <file>` shows what a release contains without loading it.
 
 **Or build from the source files:**
 

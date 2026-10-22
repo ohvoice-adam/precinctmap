@@ -61,6 +61,7 @@ uv run precinctmap census status
 uv run precinctmap bundle export --out dist      # data release: every table as Parquet, source sheets, manifest + DATA.md
 uv run precinctmap bundle load <archive>          # into an empty store: sha256-checked, geo_* rebuilt and re-reconciled
 uv run precinctmap bundle info <archive>
+scripts/update-data.sh [--tag T|--file F] [--dry-run] [--yes]   # install/update an instance from a release: verify, back up, load, restore on failure
 uv run precinctmap serve --reload              # API on PRECINCTMAP_HOST:PRECINCTMAP_PORT (from .env; default 127.0.0.1:8000)
 cd app/web && corepack pnpm dev                # web on :5173, proxies /api (pnpm pinned via packageManager)
 docker compose up --build                      # full stack
