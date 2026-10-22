@@ -112,3 +112,22 @@ def test_reload_is_unchanged_and_changes_need_replace(registry, settings):
         "SELECT count(*) FROM precinct_crosswalk WHERE target_set_id = 'council'"
     ).fetchone()[0]
     assert gone == 0  # crosswalks on a replaced set are dropped until rebuilt
+
+
+def test_real_config_covers_any_earlier_election_date():
+    """Every geography has exactly one set for pre-2024 dates (decision 2026-10-22)."""
+    from datetime import date
+
+    from precinctmap.registry.config import DEFAULT_CONFIG, load_config
+
+    cfg = load_config(DEFAULT_CONFIG)
+    for on in (date(2016, 11, 8), date(2022, 11, 8), date(2024, 11, 5), date(2026, 11, 3)):
+        for geo in ("county", "precinct", "municipality", "council_district", "zcta"):
+            covering = [
+                s.id
+                for s in cfg.sets
+                if s.geography == geo
+                and s.valid_from <= on
+                and (s.valid_to is None or on < s.valid_to)
+            ]
+            assert len(covering) == 1, (geo, on, covering)

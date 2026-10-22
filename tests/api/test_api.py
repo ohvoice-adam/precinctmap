@@ -222,3 +222,11 @@ def test_admin_page_is_behind_login(seeded, monkeypatch, tmp_path):
     assert c.get("/admin.html").status_code == 401  # static mount must not bypass the login
     page = c.get("/admin", auth=ADMIN["auth"])
     assert page.status_code == 200 and "<title>admin</title>" in page.text
+
+
+def test_council_districts_before_2023_are_labeled_retroactive():
+    from precinctmap.serve.geo import _notes
+    from precinctmap.serve.labels import RETROACTIVE_COUNCIL
+
+    assert RETROACTIVE_COUNCIL in _notes("council_district", retroactive=True)
+    assert RETROACTIVE_COUNCIL not in _notes("council_district", retroactive=False)

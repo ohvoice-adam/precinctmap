@@ -126,3 +126,19 @@ def test_jurisdiction_parsing_stops_at_contest_words():
         "Village of Lockbourne"
     )
     assert jurisdiction("For U.S. Senator") is None
+
+
+def test_primary_file_given_the_november_2022_date_is_blocked(tmp_path):
+    p = _parsed(sheet_2025_primary(), tmp_path)  # party-ballot contests: a primary
+    ident = identify("Official-Results-by-Precinct.xlsx", p, override_date=date(2022, 11, 8))
+    assert ident.election_id is None
+    assert "calendar lists 2022-11-08 as general, not primary" in ident.problems
+    ok = identify("Official-Results-by-Precinct.xlsx", p, override_date=date(2022, 8, 2))
+    assert ok.election_id == "franklin-2022-08-02-primary"
+
+
+def test_two_2022_primaries_need_an_explicit_date(tmp_path):
+    p = _parsed(sheet_2025_primary(), tmp_path)
+    ident = identify("2022-Primary-Election.xlsx", p)
+    assert ident.election_id is None
+    assert any("2 primary dates in 2022" in problem for problem in ident.problems)

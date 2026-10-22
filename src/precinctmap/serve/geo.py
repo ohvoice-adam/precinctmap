@@ -13,7 +13,12 @@ import duckdb
 import shapely
 
 from precinctmap.registry.store import fingerprint_of, read_features, set_for
-from precinctmap.serve.labels import GEOGRAPHY_LABELS, RETROACTIVE_PRECINCTS, ZCTA_NOTE
+from precinctmap.serve.labels import (
+    GEOGRAPHY_LABELS,
+    RETROACTIVE_COUNCIL,
+    RETROACTIVE_PRECINCTS,
+    ZCTA_NOTE,
+)
 
 SERVE_CRS = 4326
 SIMPLIFY_DEGREES = 0.00003  # ~3 m; small enough that shared edges show no visible gaps
@@ -31,6 +36,8 @@ def _notes(geography: str, retroactive: bool) -> list[str]:
     notes = []
     if retroactive and geography in ("precinct", "municipality"):
         notes.append(RETROACTIVE_PRECINCTS)
+    if retroactive and geography == "council_district":
+        notes.append(RETROACTIVE_COUNCIL)
     if geography == "zcta":
         notes.append(ZCTA_NOTE)
     return notes

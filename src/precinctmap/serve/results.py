@@ -13,6 +13,7 @@ from precinctmap.serve.labels import (
     FRANKLIN_ONLY,
     GEOGRAPHY_LABELS,
     NOT_IN_COLUMBUS,
+    RETROACTIVE_COUNCIL,
     RETROACTIVE_PRECINCTS,
     ZCTA_NOTE,
 )
@@ -73,6 +74,8 @@ def _notes(
     notes = []
     if retro and geography in ("precinct", "municipality"):
         notes.append(RETROACTIVE_PRECINCTS)
+    if retro and geography == "council_district":
+        notes.append(RETROACTIVE_COUNCIL)
     others = con.execute(
         "SELECT county_name, sum(votes) FROM out_of_county_results WHERE contest_id = ?"
         " GROUP BY 1 ORDER BY 1",

@@ -22,7 +22,7 @@ source = "boundaries/tiger_dl/tl_2026_us_county.zip"
 where = "GEOID = '39049'"
 id_field = "GEOID"
 name_template = "{NAMELSAD}"
-valid_from = 2020-01-01
+valid_from = 2000-01-01
 notes = "TIGER 2026 county outline; clip mask and context only."
 
 # --- Precincts -------------------------------------------------------------------------
@@ -43,7 +43,7 @@ geography = "precinct"
 derive = "merge_precincts"
 from = "franklin-precincts-2025-07"
 merge = { "HAMILTON-A" = ["HAMILTON-A", "OBETZ-D"] }
-valid_from = 2024-01-01
+valid_from = 2000-01-01  # any earlier election, for now (decision 2026-10-22)
 valid_to = 2025-07-30
 native_from = 2025-07-30
 notes = """No older precinct file can be obtained, so the 2025 file is applied retroactively. \
@@ -74,7 +74,7 @@ places = "boundaries/tl_2026_39_place.zip"
 county_subdivisions = "boundaries/tiger_dl/tl_2026_39_cousub.zip"
 carve_places = ["Brice", "Harrisburg", "Lithopolis", "Lockbourne", "Pickerington"]
 aliases = { "GRANDVIEW" = "Grandview Heights" }
-valid_from = 2024-01-01
+valid_from = 2000-01-01
 valid_to = 2025-07-30
 native_from = 2025-07-30
 notes = "Same derivation from the retroactive precinct set."
@@ -88,7 +88,7 @@ source = "boundaries/Columbus_City_Council_Districts.geojson"
 id_field = "DISTRICT"
 name_template = "District {DISTRICT}"
 jurisdiction = "COLUMBUS"
-valid_from = 2023-01-01
+valid_from = 2000-01-01  # earlier elections use it retroactively (labeled), for now
 native_from = 2023-01-01
 notes = "The original and current district map (first used 2023). File last edited 2024-11-26."
 
@@ -101,5 +101,5 @@ source = "boundaries/tl_2026_us_zcta520.zip"
 id_field = "ZCTA5CE20"
 name_template = "ZIP {ZCTA5CE20}"
 clip_to_county = true
-valid_from = 2020-01-01
+valid_from = 2000-01-01
 notes = "Census ZCTA5 (2020 definitions, TIGER 2026), clipped to the Franklin County portion."

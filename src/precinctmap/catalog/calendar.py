@@ -10,6 +10,12 @@ from typing import Literal
 ElectionType = Literal["primary", "general", "special"]
 
 FRANKLIN_ELECTIONS: dict[date, ElectionType] = {
+    date(2022, 5, 3): "primary",
+    date(2022, 8, 2): "primary",  # second primary (state legislature, after redistricting)
+    date(2022, 11, 8): "general",
+    date(2023, 5, 2): "primary",
+    date(2023, 8, 8): "special",  # statewide Issue 1
+    date(2023, 11, 7): "general",
     date(2024, 3, 19): "primary",
     date(2024, 11, 5): "general",
     date(2025, 5, 6): "primary",

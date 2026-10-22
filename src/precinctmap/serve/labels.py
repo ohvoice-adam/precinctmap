@@ -11,6 +11,10 @@ GEOGRAPHY_LABELS = {
 RETROACTIVE_PRECINCTS = (
     "Precinct boundaries are from July 2025 and are applied to this earlier election."
 )
+RETROACTIVE_COUNCIL = (
+    "Columbus council districts were first used in 2023; their boundaries are applied to this"
+    " earlier election."
+)
 FRANKLIN_ONLY = "Franklin County results only."
 NOT_IN_COLUMBUS = "Precincts outside Columbus are not part of any council district."
 ZCTA_NOTE = (
