@@ -13,6 +13,8 @@ from dataclasses import dataclass
 import duckdb
 import pandas as pd
 
+from precinctmap.parcels.areas import GEOGRAPHIES, assigned_sql
+
 
 @dataclass(frozen=True)
 class Metric:
@@ -204,25 +206,16 @@ METRICS: tuple[Metric, ...] = (
 )
 BY_ID = {m.metric: m for m in METRICS}
 
-# geography -> (set column, feature column) in parcel_assignments
-GEOGRAPHY_COLUMNS = {
-    "precinct": ("precinct_set_id", "precinct_name"),
-    "council_district": ("council_set_id", "council_district"),
-    "municipality": ("municipality_set_id", "municipality"),
-    "zcta": ("zcta_set_id", "zcta"),
-}
-
 
 def _wide(con: duckdb.DuckDBPyConnection, file_id: str, geo: str) -> pd.DataFrame:
-    set_col, feat_col = GEOGRAPHY_COLUMNS[geo]
     cols = ", ".join(f"{m.value_sql} AS v_{m.metric}, {m.n_sql} AS n_{m.metric}" for m in METRICS)
     return con.execute(
-        f"SELECT a.{set_col} AS boundary_set_id, a.{feat_col} AS feature_id, {cols}"
+        f"SELECT a.boundary_set_id, a.feature_id, {cols}"
         " FROM (SELECT * REPLACE ("
         "   CASE WHEN apartment THEN NULL ELSE building_value END AS building_value,"
         "   CASE WHEN apartment THEN NULL ELSE appraised_total END AS appraised_total)"
-        "   FROM parcels) p JOIN parcel_assignments a USING (file_id, pid)"
-        f" WHERE p.file_id = ? AND p.residential AND a.{feat_col} IS NOT NULL"
+        f"   FROM parcels) p JOIN ({assigned_sql(geo)}) a USING (file_id, pid)"
+        " WHERE p.file_id = ? AND p.residential AND a.feature_id IS NOT NULL"
         " GROUP BY ALL",
         [file_id],
     ).df()
@@ -231,7 +224,7 @@ def _wide(con: duckdb.DuckDBPyConnection, file_id: str, geo: str) -> pd.DataFram
 def materialize_stats(con: duckdb.DuckDBPyConnection, file_id: str) -> int:
     """Replace parcel_stats for `file_id`; returns rows written."""
     frames = []
-    for geo in GEOGRAPHY_COLUMNS:
+    for geo in GEOGRAPHIES:
         wide = _wide(con, file_id, geo)
         for m in METRICS:
             frames.append(

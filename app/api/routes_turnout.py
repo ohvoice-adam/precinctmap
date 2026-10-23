@@ -12,7 +12,9 @@ from precinctmap.serve.turnout_detail import turnout_detail, turnout_export_csv
 router = APIRouter(prefix="/api/turnout")
 
 Election = Annotated[str, Query(description="election_id from /api/catalog")]
-Geography = Annotated[str, Query(description="precinct | council_district | municipality | zcta")]
+Geography = Annotated[
+    str, Query(description="precinct | council_district | municipality | ward | zcta")
+]
 
 
 @router.get("", response_model=Results)

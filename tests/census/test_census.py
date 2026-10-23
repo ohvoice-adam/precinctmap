@@ -71,9 +71,10 @@ def test_population_follows_blocks_into_every_geography(review):
     assert stat(review, "council_district", "1", "population").value == pytest.approx(130)
     assert stat(review, "council_district", "2", "population").value == pytest.approx(70)
     assert stat(review, "municipality", "brice", "population").value == pytest.approx(10)
+    assert stat(review, "ward", "columbus-ward-01", "population").value == pytest.approx(200)
     s = review.computed.stats
     totals = s[s.metric == "population"].groupby("geography")["value"].sum().round(6).to_dict()
-    assert totals["precinct"] == 400 and totals["municipality"] == 400
+    assert totals["precinct"] == totals["municipality"] == totals["ward"] == 400
     assert totals["council_district"] == 200  # Columbus blocks only
     assert all(units == county for _, units, county in review.county_checks)
 
@@ -117,6 +118,9 @@ def test_commit_is_idempotent_and_replaces_changed_files(fetched, review, settin
     n = con.execute("SELECT count(*) FROM census_stats").fetchone()[0]
     assert n == len(review.computed.stats) and n > 0
     assert commit_release(con, review, cfg.county) == "noop"
+    con.execute("DELETE FROM census_stats WHERE geography = 'ward'")  # as before wards existed
+    assert commit_release(con, review, cfg.county) == "replaced"
+    assert con.execute("SELECT count(*) FROM census_stats").fetchone()[0] == n
     path = release_dir(settings.data_dir, YEAR) / "acsdt5y2024-b01003.dat"
     path.write_text(path.read_text().replace(f"1500000US{BG_A}|200|20", f"1500000US{BG_A}|210|20"))
     again = review_release(con, cfg, settings.data_dir, YEAR, AS_OF)

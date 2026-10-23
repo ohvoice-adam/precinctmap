@@ -37,6 +37,7 @@ function sourceLine(stats: MeasureStats, cat: MeasureCatalog): string {
 
 export function renderMeasureSidebar(
   summary: HTMLElement, notes: HTMLElement, exports: HTMLElement, stats: MeasureStats, cat: MeasureCatalog,
+  measureOnly: HTMLElement,
 ): void {
   summary.replaceChildren(
     el("h2", {}, stats.label),
@@ -48,7 +49,8 @@ export function renderMeasureSidebar(
   const what = stats.dataset === "census" ? "every census measure, with margins of error" : "every property measure";
   exports.replaceChildren(
     el("h2", {}, "Export this geography"),
-    el("a", { href, download: true }, `CSV (${what})`),
+    el("p", { class: "links" }, measureOnly),
+    el("p", { class: "links" }, el("a", { href, download: true }, `CSV (${what})`)),
     el("p", { class: "source" }, `Source: ${stats.source_file}`),
   );
 }

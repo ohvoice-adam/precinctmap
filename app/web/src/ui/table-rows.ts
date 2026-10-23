@@ -67,7 +67,7 @@ export function resultsTable(
       note: resultNote(a, results.features[id]?.method, turnout),
     };
   });
-  return { caption: `${contestName} · ${results.geography_label}`, valueLabel: valueLabel(ctx, results), countLabel: turnout ? "Ballots cast" : "Valid votes", rows };
+  return { caption: `${contestName} · ${results.geography_label}`, valueLabel: valueLabel(ctx, results), countLabel: turnout ? "Ballots cast" : "Valid votes", source: results.source_file, rows };
 }
 
 function measureNote(stats: MeasureStats, has: boolean, low: boolean): string {
@@ -90,8 +90,9 @@ export function measureTable(areas: AreaCollection, stats: MeasureStats): TableS
       count: v?.n ?? null,
       countDisplay: v ? votes(v.n) : DASH,
       note: measureNote(stats, value !== null, v !== undefined && isLow(stats, v)),
+      moe: value !== null ? (v?.moe ?? null) : null,
     };
   });
   const what = baseLabel(stats);
-  return { caption: `${stats.label} · ${stats.geography_label}`, valueLabel: stats.label, countLabel: what.charAt(0).toUpperCase() + what.slice(1), rows };
+  return { caption: `${stats.label} · ${stats.geography_label}`, valueLabel: stats.label, countLabel: what.charAt(0).toUpperCase() + what.slice(1), source: stats.source_file, rows };
 }

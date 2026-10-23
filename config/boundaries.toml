@@ -79,6 +79,33 @@ valid_to = 2025-07-30
 native_from = 2025-07-30
 notes = "Same derivation from the retroactive precinct set."
 
+# --- Wards (exact by precinct name prefix with ward number) ------------------------------
+[[sets]]
+id = "franklin-wards-2025-07"
+geography = "ward"
+derive = "precinct_wards"
+from = "franklin-precincts-2025-07"
+places = "boundaries/tl_2026_39_place.zip"
+county_subdivisions = "boundaries/tiger_dl/tl_2026_39_cousub.zip"
+aliases = { "GRANDVIEW" = "Grandview Heights" }
+valid_from = 2025-07-30
+native_from = 2025-07-30
+notes = """Precincts dissolved by name prefix: COLUMBUS 01-A and 01-B form Columbus Ward 01. \
+Jurisdictions whose precincts have no ward number (BLENDON-A) are one area each."""
+
+[[sets]]
+id = "franklin-wards-2025-07-retro"
+geography = "ward"
+derive = "precinct_wards"
+from = "franklin-precincts-2025-07-retro"
+places = "boundaries/tl_2026_39_place.zip"
+county_subdivisions = "boundaries/tiger_dl/tl_2026_39_cousub.zip"
+aliases = { "GRANDVIEW" = "Grandview Heights" }
+valid_from = 2000-01-01
+valid_to = 2025-07-30
+native_from = 2025-07-30
+notes = "Same derivation from the retroactive precinct set."
+
 # --- Columbus council districts ---------------------------------------------------------
 
 [[sets]]

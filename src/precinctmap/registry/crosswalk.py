@@ -72,7 +72,7 @@ def _decide(
                 (name, "nested_within_tolerance", f"{top['split']:.2%} in {top['feature_id']}")
             )
         s.exact += 1
-        exact_basis = "jurisdiction" if geography == "municipality" else basis
+        exact_basis = "jurisdiction" if geography in ("municipality", "ward") else basis
         s.rows.append(_row(name, top, 1.0, "exact", exact_basis))
         return
     slivers = norm[norm["split"] < MIN_SHARE]

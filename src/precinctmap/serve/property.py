@@ -6,7 +6,8 @@ from typing import Any
 
 import duckdb
 
-from precinctmap.parcels.stats import BY_ID, GEOGRAPHY_COLUMNS, METRICS
+from precinctmap.parcels.areas import assigned_sql
+from precinctmap.parcels.stats import BY_ID, METRICS
 from precinctmap.serve.labels import GEOGRAPHY_LABELS, NOT_IN_COLUMBUS, ZCTA_NOTE
 from precinctmap.serve.results import NotFoundError
 
@@ -50,7 +51,7 @@ def property_catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
             "SELECT DISTINCT geography FROM parcel_stats WHERE file_id = ?", [file_id]
         ).fetchall()
     ]
-    order = ["precinct", "council_district", "municipality", "zcta"]
+    order = ["precinct", "council_district", "municipality", "ward", "zcta"]
     return {
         "dataset": "property",
         "label": f"Residential property (auditor, {as_of.isoformat()})",
@@ -162,13 +163,12 @@ def _grades(
     con: duckdb.DuckDBPyConnection, file_id: str, geography: str, feature: str
 ) -> list[tuple[str, int]]:
     """Residential parcels by grade letter in one area."""
-    col = GEOGRAPHY_COLUMNS[geography][1]
     rows: list[tuple[str, int]] = con.execute(
         "SELECT CASE WHEN coalesce(p.grade, '') = '' THEN 'Ungraded'"
         " WHEN left(p.grade, 1) IN ('A', 'B', 'C', 'D', 'E') THEN left(p.grade, 1)"
         " ELSE 'Other (S/X, not scored)' END g, count(*) FROM parcels p"
-        " JOIN parcel_assignments a USING (file_id, pid) WHERE p.file_id = ? AND p.residential"
-        f" AND a.{col} = ? GROUP BY 1 ORDER BY 1",
+        f" JOIN ({assigned_sql(geography)}) a USING (file_id, pid)"
+        " WHERE p.file_id = ? AND p.residential AND a.feature_id = ? GROUP BY 1 ORDER BY 1",
         [file_id, feature],
     ).fetchall()
     return rows

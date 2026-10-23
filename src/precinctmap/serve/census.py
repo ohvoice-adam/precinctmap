@@ -25,7 +25,7 @@ TRACT_NOTE = (
     "smoothed across each tract."
 )
 COUNCIL_NOTE = "Council districts count only blocks in Columbus precincts."
-ORDER = ["precinct", "council_district", "municipality", "zcta"]
+ORDER = ["precinct", "council_district", "municipality", "ward", "zcta"]
 
 
 def _active(con: duckdb.DuckDBPyConnection) -> tuple[str, str, Any] | None:

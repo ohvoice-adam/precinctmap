@@ -11,7 +11,7 @@ from precinctmap.registry.crosswalk import CrosswalkSummary, compute_crosswalk
 
 log = logging.getLogger(__name__)
 
-TARGET_GEOGRAPHIES = ("council_district", "municipality", "zcta")
+TARGET_GEOGRAPHIES = ("council_district", "municipality", "ward", "zcta")
 _CROSSWALK_COLS = [
     "precinct_set_id",
     "target_set_id",
@@ -34,7 +34,7 @@ def _overlaps(a: tuple[date, date | None], b: tuple[date, date | None]) -> bool:
 def crosswalk_pairs(con: duckdb.DuckDBPyConnection, county: str) -> list[tuple[str, str, str]]:
     """(precinct_set_id, target_set_id, geography) for every overlapping pair.
 
-    A municipality set pairs only with the precinct set it was derived from.
+    A municipality or ward set pairs only with the precinct set it was derived from.
     """
     sets = con.execute(
         "SELECT boundary_set_id, geography, valid_from, valid_to, derived_from FROM boundary_sets"
@@ -47,7 +47,7 @@ def crosswalk_pairs(con: duckdb.DuckDBPyConnection, county: str) -> list[tuple[s
         for t_id, geo, t_from, t_to, parent in sets:
             if geo not in TARGET_GEOGRAPHIES or not _overlaps((p_from, p_to), (t_from, t_to)):
                 continue
-            if geo == "municipality" and parent != p_id:
+            if geo in ("municipality", "ward") and parent != p_id:
                 continue
             pairs.append((p_id, t_id, geo))
     return pairs

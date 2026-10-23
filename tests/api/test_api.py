@@ -42,6 +42,7 @@ def test_catalog_lists_only_options_with_data(client):
         "precinct",
         "council_district",
         "municipality",
+        "ward",
     ]  # no ZCTA set in the mini-county, so not offered
     levy = next(c for c in election["contests"] if c["type"] == "issue")
     assert [c["kind"] for c in levy["choices"]] == ["yes", "no", "over", "under"]
@@ -177,6 +178,7 @@ def test_admin_upload_review_commit(client, tmp_path):
         "precinct",
         "council_district",
         "municipality",
+        "ward",
     }
     assert all(r["failures"] == 0 for r in done["reconciliation"])
     assert len(client.get("/api/catalog").json()["elections"]) == 2

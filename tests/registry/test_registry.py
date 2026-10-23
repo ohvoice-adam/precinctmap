@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from precinctmap.registry.config import RegistryConfigError, load_config
+from precinctmap.registry.derive import precinct_ward
 from precinctmap.registry.loader import load_registry, load_set
 from precinctmap.registry.store import BoundaryError, read_features, set_for
 from tests.fixtures.geo import CONFIG
@@ -28,6 +29,7 @@ def test_real_registry_config_parses():
         "precinct",
         "municipality",
         "council_district",
+        "ward",
         "zcta",
     }
     retro = next(s for s in cfg.sets if s.id.endswith("precincts-2025-07-retro"))
@@ -131,3 +133,29 @@ def test_real_config_covers_any_earlier_election_date():
                 and (s.valid_to is None or on < s.valid_to)
             ]
             assert len(covering) == 1, (geo, on, covering)
+
+
+def test_precinct_ward_prefix():
+    assert precinct_ward("COLUMBUS 01-A") == ("COLUMBUS", "01")
+    assert precinct_ward("MARBLE CLIFF-A") == ("MARBLE CLIFF", None)
+    with pytest.raises(BoundaryError, match="ward prefix"):
+        precinct_ward("COLUMBUS 01")
+
+
+def test_wards_dissolve_precincts_by_prefix_and_nest_exactly(registry):
+    con, _, _ = registry
+    names = dict(read_features(con, "ward")[["feature_id", "name"]].values)
+    assert names == {
+        "columbus-ward-01": "Columbus Ward 01",
+        "blendon-township": "Blendon Township",
+        "hamilton-township": "Hamilton Township",
+        "obetz": "Obetz",
+    }
+    xw = _xw(con, "pct-retro", "ward-retro")
+    assert set(xw) == {
+        ("COLUMBUS 01-A", "columbus-ward-01"),
+        ("COLUMBUS 01-B", "columbus-ward-01"),
+        ("BLENDON-A", "blendon-township"),
+        ("HAMILTON-A", "hamilton-township"),  # includes the old OBETZ-D
+    }
+    assert {v for v in xw.values()} == {(1.0, "exact", "jurisdiction")}

@@ -46,7 +46,7 @@ SELECT contest_id, choice_id, name_display, party, choice_kind
 FROM choices ORDER BY contest_id, source_ordinal
 """
 
-GEOGRAPHY_ORDER = ("precinct", "council_district", "municipality", "zcta")
+GEOGRAPHY_ORDER = ("precinct", "council_district", "municipality", "ward", "zcta")
 
 
 def _choices(con: duckdb.DuckDBPyConnection) -> dict[str, list[dict[str, Any]]]:

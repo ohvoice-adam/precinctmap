@@ -1,6 +1,6 @@
 # precinctmap: election results map
 
-A map of Franklin County precinct election results. You can view results by precinct, Columbus council district, city, village or township, and ZIP code area. Every number on the map traces back to an official Board of Elections results file.
+A map of Franklin County precinct election results. You can view results by precinct, ward, Columbus council district, city, village or township, and ZIP code area. Every number on the map traces back to an official Board of Elections results file.
 
 - **Map:** `http://<server>:8000/` (or the port set in `PRECINCTMAP_PORT`). Anyone with the link can use it; there is no login.
 - **Add an election:** `http://<server>:8000/admin`. This needs the admin login.
@@ -12,7 +12,7 @@ A map of Franklin County precinct election results. You can view results by prec
    - **Contest.** Type in the filter box to narrow a long list. In primaries, contests are grouped by party ballot.
    - **Show.** For issues: yes share, the yes−no margin, or total votes. For candidates: one candidate's share, the margin between the top two, who leads in each area, or total votes.
    - **Turnout** is the first entry in each election's contest list when the results file has registered voters and ballots. It shows turnout (ballots ÷ registered voters) and ballots cast. In primaries it also shows each party's ballots three ways: as a share of registered voters (the party shares add up to turnout), as a share of all ballots cast, and as a count. Pick the party under **Party ballot**.
-   - **Map by.** Precinct, Columbus council district, city/village/township, or ZIP code area.
+   - **Map by.** Precinct, Columbus council district, city/village/township, ward, or ZIP code area. A ward is all the precincts that share a prefix: COLUMBUS 01-A and COLUMBUS 01-B make up Columbus Ward 01. Places whose precincts have no ward number (BLENDON-A) are one area each.
 2. **Read the colors with the legend.** Bins are fixed, so the same color always means the same range.
    - **Teal** (light to dark) means more of something: share, turnout or votes.
    - **Orange and purple** are the two sides of a margin. The legend names which side is which. **Gray** means "within 5 points".
@@ -25,11 +25,11 @@ A map of Franklin County precinct election results. You can view results by prec
 4. **Click** an area for the full breakdown: every choice's votes and share, turnout, and the precincts it was built from. The panel also names the official file the numbers come from.
 5. **See it as a table** with the **Map / Table / Map and table** switch above the map. On a wide screen the table sits beside the map by default. It lists every area with the mapped value, the number of votes (or parcels) behind it, and notes such as "fewer than 25 votes". Click a column heading to sort, and again to reverse. Areas with no value always sort last. Click an area's name to open its breakdown.
 6. **Share a view** by copying the page address. It records everything you picked.
-7. **Export** the current view as CSV (for spreadsheets) or GeoJSON (for mapping software), from the bottom of the left panel.
+7. **Export** from the bottom of the left panel. **CSV (this measure only)** holds just what is on the map: one row per area with the mapped value, as a number and as displayed, the votes or parcels behind it, notes and the source file. The other links export everything for the view: every choice's votes (CSV or GeoJSON, for mapping software), or every property or census measure for the geography.
 
 ### Residential property
 
-Switch **Data** to *Residential property*. You can map these measures by precinct, council district, city or township, and ZIP area:
+Switch **Data** to *Residential property*. You can map these measures by precinct, council district, city or township, ward, and ZIP area:
 - the number and share of likely rentals, with LLC ownership and out-of-area owners shown separately;
 - median and mean building value and total value, each also as **mean minus median**;
 - the auditor's construction grade.
@@ -44,7 +44,7 @@ What the property measures mean:
 
 ### Census demographics
 
-Switch **Data** to *Census demographics* for American Community Survey 2020–2024 estimates, by precinct, council district, city or township, and ZIP area:
+Switch **Data** to *Census demographics* for American Community Survey 2020–2024 estimates, by precinct, council district, city or township, ward, and ZIP area:
 - **Education:** bachelor's degree or higher, graduate degree.
 - **Age and household:** adults 18 to 34, never married.
 - **Race and ethnicity:** White, Black, Hispanic or Latino, and Asian shares.
@@ -63,7 +63,7 @@ How the measures were chosen and calculated: `project-docs/census.md`.
 
 ### Things to know when reading the map
 
-- **Estimated areas.** Precincts don't always fit inside council districts, ZIP code areas, or villages that have no precincts of their own. When a precinct is split, its votes are divided by where people live, using 2020 census population. Tooltips say "includes estimates from split precincts", and the click panel shows the share taken from each precinct. Precinct views and most city and township views need no estimates.
+- **Estimated areas.** Precincts don't always fit inside council districts, ZIP code areas, or villages that have no precincts of their own. When a precinct is split, its votes are divided by where people live, using 2020 census population. Tooltips say "includes estimates from split precincts", and the click panel shows the share taken from each precinct. Precinct, ward and most city and township views need no estimates.
 - **Franklin County only.** Parts of Columbus, Westerville, Dublin and other places lie in neighboring counties. Those votes are not mapped. The notes panel lists them when a contest has them.
 - **Council districts.** Only precincts inside Columbus belong to a district. The notes panel says how many votes in the contest came from outside Columbus.
 - **Older elections.** The only precinct map available is from July 2025. Elections before then use it as well, and the notes panel says so.
@@ -191,7 +191,7 @@ Export only from a stopped app. A store copied while the app runs can be missing
 
 - **New precinct map from the Board of Elections:**
   1. Add the file under `data/boundaries/`.
-  2. In `config/boundaries.toml`, give the current precinct set a `valid_to` date (the first election that uses the new map) and add the new set. Do the same for its municipality set.
+  2. In `config/boundaries.toml`, give the current precinct set a `valid_to` date (the first election that uses the new map) and add the new set. Do the same for its municipality and ward sets.
   3. Run `precinctmap boundaries load --replace <changed set id>`. Results for every election are rebuilt and re-checked automatically.
 - **An election date isn't recognized:** enter it on the admin page. To make it automatic for future files, add it to `src/precinctmap/catalog/calendar.py`.
 - **A typo in a contest or candidate name:** add a reviewed fix to `src/precinctmap/ingest/corrections.py`. Then re-process the affected file: tick **Re-process** on the admin page, or use `--reprocess` on the command line.

@@ -126,6 +126,19 @@ def _same_files(con: duckdb.DuckDBPyConnection, review: CensusReview) -> bool:
     return have == {f.table: f.sha256 for f in review.files}
 
 
+def _same_areas(con: duckdb.DuckDBPyConnection, review: CensusReview) -> bool:
+    """The stored release covers the same areas (a new geography or boundary set rebuilds it)."""
+    cols = ["geography", "boundary_set_id", "feature_id"]
+    have = set(
+        con.execute(
+            "SELECT DISTINCT geography, boundary_set_id, feature_id FROM census_stats"
+            " WHERE release_id = ?",
+            [review.release_id],
+        ).fetchall()
+    )
+    return have == set(review.computed.stats[cols].drop_duplicates().itertuples(index=False))
+
+
 def commit_release(con: duckdb.DuckDBPyConnection, review: CensusReview, county: str) -> str:
     """Write the release; returns 'noop', 'committed' or 'replaced'."""
     rid = review.release_id
@@ -133,7 +146,8 @@ def commit_release(con: duckdb.DuckDBPyConnection, review: CensusReview, county:
         "SELECT count(*) FROM census_releases WHERE release_id = ?", [rid]
     ).fetchone()
     replacing = bool(exists and exists[0])
-    if replacing and _same_files(con, review):
+    same_files = replacing and _same_files(con, review)
+    if same_files and _same_areas(con, review):
         return "noop"
     files = pd.DataFrame(
         [
@@ -145,9 +159,9 @@ def commit_release(con: duckdb.DuckDBPyConnection, review: CensusReview, county:
     stats = review.computed.stats.assign(release_id=rid)
     log = pd.DataFrame(review.log or [], columns=["issue", "detail"]).assign(release_id=rid)
     if replacing:
-        log = pd.concat(
-            [log, pd.DataFrame([{"release_id": rid, "issue": "replaced", "detail": "new files"}])]
-        )
+        reason = {"release_id": rid, "issue": "replaced"}
+        reason["detail"] = "new areas" if same_files else "new files"
+        log = pd.concat([log, pd.DataFrame([reason])])
     con.execute("BEGIN")
     try:
         for table in ("census_stats", "census_files", "census_log", "census_releases"):

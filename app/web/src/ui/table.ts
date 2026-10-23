@@ -12,12 +12,14 @@ export interface TableRow {
   count: number | null;
   countDisplay: string;
   note: string;
+  moe?: number | null; // census: 90% margin of error, in the value's units
 }
 
 export interface TableSpec {
   caption: string;
   valueLabel: string;
   countLabel: string;
+  source: string; // source file the values trace back to
   rows: TableRow[];
 }
 
@@ -54,6 +56,11 @@ export class AreaTable {
     private readonly onHover: (id: string | null) => void,
   ) {
     this.root.addEventListener("mouseleave", () => { this.onHover(null); });
+  }
+
+  /** The statistic on display (for the "this measure only" export). */
+  get current(): TableSpec | null {
+    return this.spec;
   }
 
   render(spec: TableSpec): void {

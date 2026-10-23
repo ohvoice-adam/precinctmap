@@ -61,7 +61,7 @@ def test_every_geography_reproduces_franklin_total(store, g):
         " WHERE choice_id = ?",
         [choice],
     ).fetchall()
-    assert {r[0] for r in rows} == {"precinct", "council_district", "municipality", "zcta"}
+    assert {r[0] for r in rows} == {"precinct", "council_district", "municipality", "ward", "zcta"}
     for geography, mapped, excluded, unassigned, ok in rows:
         assert ok
         assert mapped + excluded + unassigned == pytest.approx(g["franklin_precincts"], abs=1e-6)

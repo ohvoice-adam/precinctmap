@@ -192,8 +192,23 @@ button:focus-visible {
   margin-bottom: 0.35rem;
 }
 
-.exports a {
+.exports a,
+.exports button.link {
   font-size: 0.9rem;
+}
+
+.exports p.links {
+  margin: 0.25rem 0;
+}
+
+button.link {
+  font: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .error {

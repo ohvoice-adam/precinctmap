@@ -4,6 +4,7 @@ GEOGRAPHY_LABELS = {
     "precinct": "Precinct",
     "council_district": "Columbus council district",
     "municipality": "City, village, or township",
+    "ward": "Ward",
     "zcta": "ZIP code area (ZCTA)",
     "county": "County",
 }

@@ -10,7 +10,9 @@ from precinctmap.serve.census import census_detail, census_export_csv, census_st
 
 router = APIRouter(prefix="/api/census")
 
-Geography = Annotated[str, Query(description="precinct | council_district | municipality | zcta")]
+Geography = Annotated[
+    str, Query(description="precinct | council_district | municipality | ward | zcta")
+]
 
 
 @router.get("", response_model=MeasureStats)

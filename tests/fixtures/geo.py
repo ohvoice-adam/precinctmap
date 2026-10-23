@@ -2,6 +2,7 @@
 
 x 0-1000 COLUMBUS 01-A | 1000-2000 COLUMBUS 01-B | 2000-3000 BLENDON-A | 3000-4000 HAMILTON-A
 | 4000-5000 OBETZ-D. Council district 1 covers x 0-1400, district 2 x 1400-2000.
+Wards: Columbus Ward 01 = both Columbus precincts; the rest have no ward number.
 Brice (a village with no precincts) sits at x 2900-3000 inside BLENDON-A.
 Block populations make COLUMBUS 01-B 30/70 between districts and BLENDON-A 90/10 Blendon/Brice.
 Block groups: 390490001001 = x 0-2000 (blocks 1-3), 390490001002 = x 2000-3000, 390490002001 =
@@ -153,6 +154,27 @@ county_subdivisions = "boundaries/cousub.shp"
 carve_places = ["Brice"]
 valid_from = 2024-01-01
 valid_to = 2025-07-30
+
+[[sets]]
+id = "ward"
+geography = "ward"
+derive = "precinct_wards"
+from = "pct"
+places = "boundaries/places.shp"
+county_subdivisions = "boundaries/cousub.shp"
+valid_from = 2025-07-30
+native_from = 2025-07-30
+
+[[sets]]
+id = "ward-retro"
+geography = "ward"
+derive = "precinct_wards"
+from = "pct-retro"
+places = "boundaries/places.shp"
+county_subdivisions = "boundaries/cousub.shp"
+valid_from = 2024-01-01
+valid_to = 2025-07-30
+native_from = 2025-07-30
 
 [[sets]]
 id = "council"

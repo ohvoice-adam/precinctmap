@@ -61,6 +61,12 @@ def test_municipalities_exact_except_village_host(aggregated):
     assert brice == pytest.approx(0.1 * 40, rel=1e-3) and method == "allocated"
 
 
+def test_wards_sum_their_precincts_exactly(aggregated):
+    con, _ = aggregated
+    assert _votes(con, "ward", "columbus-ward-01", "for-the-tax-levy") == (150, "exact")
+    assert _votes(con, "ward", "blendon-township", "for-the-tax-levy") == (40, "exact")
+
+
 def test_precinct_geography_is_identity(aggregated):
     con, summaries = aggregated
     assert _votes(con, "precinct", "COLUMBUS 01-B", "for-the-tax-levy") == (50, "exact")
@@ -68,6 +74,7 @@ def test_precinct_geography_is_identity(aggregated):
         "precinct",
         "council_district",
         "municipality",
+        "ward",
     }  # no ZCTA set in the mini-county registry
     assert all(s.failures == 0 for s in summaries)
 

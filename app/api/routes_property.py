@@ -10,7 +10,9 @@ from precinctmap.serve.property import property_detail, property_export_csv, pro
 
 router = APIRouter(prefix="/api/property")
 
-Geography = Annotated[str, Query(description="precinct | council_district | municipality | zcta")]
+Geography = Annotated[
+    str, Query(description="precinct | council_district | municipality | ward | zcta")
+]
 
 
 @router.get("", response_model=MeasureStats)

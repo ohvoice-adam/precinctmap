@@ -19,6 +19,7 @@ from precinctmap.registry.derive import (
     merge_precincts,
     precinct_jurisdiction,
     precinct_jurisdictions,
+    precinct_wards,
 )
 from precinctmap.registry.sources import read_source
 from precinctmap.registry.store import (
@@ -86,6 +87,8 @@ def _build(
         return merge_precincts(parent, spec)
     if spec.derive == "precinct_jurisdictions":
         return precinct_jurisdictions(parent, spec, data_dir, county_outline(con, county))
+    if spec.derive == "precinct_wards":
+        return precinct_wards(parent, spec, data_dir, county_outline(con, county))
     raise BoundaryError(f"{spec.id}: unknown derivation {spec.derive!r}")
 
 

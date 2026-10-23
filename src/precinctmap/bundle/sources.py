@@ -134,7 +134,12 @@ _SETS = (
     "SELECT boundary_set_id, geography, source, valid_from, valid_to, native_from, loaded_at"
     " FROM boundary_sets ORDER BY geography, valid_from"
 )
-_GEO_KEY = {"precinct": "precincts", "municipality": "precincts", "council_district": "council"}
+_GEO_KEY = {
+    "precinct": "precincts",
+    "municipality": "precincts",
+    "ward": "precincts",
+    "council_district": "council",
+}
 
 
 def _boundary_line(sid: str, geo: str, src: str, vf: Any, vt: Any, nf: Any, loaded: Any) -> str:

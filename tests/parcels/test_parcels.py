@@ -211,7 +211,7 @@ def test_area_statistics_and_totals(loaded):
             " WHERE metric = 'residential_parcels' GROUP BY 1"
         ).fetchall()
     )
-    assert totals == {"precinct": 11, "municipality": 11, "council_district": 9}
+    assert totals == {"precinct": 11, "municipality": 11, "ward": 11, "council_district": 9}
 
 
 def test_property_api(loaded, settings):

@@ -17,6 +17,7 @@ import type { Change } from "./state";
 import { Controls } from "./ui/controls";
 import { compact, el, labeled, option } from "./ui/dom";
 import { STATUS_TEXT, marginSides, tooltipLines } from "./ui/format";
+import { measureOnlyButton } from "./ui/export";
 import { AreaTable } from "./ui/table";
 import { measureTable, resultsTable } from "./ui/table-rows";
 import { ViewToggle } from "./ui/viewmode";
@@ -196,7 +197,7 @@ export class App {
     this.table.render(measureTable(d.areas, d.stats));
     this.map.paint(d.scale.bins.map((b) => b.color), d.states);
     renderLegend(this.legend, d.scale, msel.geography, new Set([...d.states.values()].map((s) => s.bin)), cat.dataset);
-    renderMeasureSidebar(this.summary, this.notes, this.exports, d.stats, cat);
+    renderMeasureSidebar(this.summary, this.notes, this.exports, d.stats, cat, this.measureOnly());
   }
 
   private renderSidebar(sel: Selection, results: Results): void {
@@ -217,9 +218,15 @@ export class App {
     };
     const geojson = link("geojson", "GeoJSON"); // turnout exports CSV only
     this.exports.replaceChildren(
-      ...compact(el("h2", {}, "Export this view"), link("csv", "CSV"), geojson ? " · " : null, geojson),
+      el("h2", {}, "Export this view"),
+      el("p", { class: "links" }, this.measureOnly()),
+      el("p", { class: "links" }, ...compact(link("csv", "CSV (every choice)"), geojson ? " · " : null, geojson)),
       el("p", { class: "source" }, `Source: ${results.source_file}`),
     );
+  }
+
+  private measureOnly(): HTMLButtonElement {
+    return measureOnlyButton(() => this.table.current);
   }
 
   private hover(x: number, y: number, hit: ReturnType<AreaMap["hitAt"]>): void {

@@ -6,11 +6,12 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
-Geography = Literal["precinct", "council_district", "municipality", "zcta", "county"]
+Geography = Literal["precinct", "council_district", "municipality", "ward", "zcta", "county"]
 GEOGRAPHIES: tuple[Geography, ...] = (
     "precinct",
     "council_district",
     "municipality",
+    "ward",
     "zcta",
     "county",
 )
@@ -39,7 +40,7 @@ class SetSpec:
     name_template: str | None = None
     jurisdiction: str | None = None
     clip_to_county: bool = False
-    derive: str | None = None  # 'merge_precincts' | 'precinct_jurisdictions'
+    derive: str | None = None  # 'merge_precincts' | 'precinct_jurisdictions' | 'precinct_wards'
     derived_from: str | None = None
     merge: dict[str, list[str]] = field(default_factory=dict)
     places: str | None = None

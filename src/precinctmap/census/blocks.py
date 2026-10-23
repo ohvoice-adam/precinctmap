@@ -1,4 +1,5 @@
-"""2020 blocks as the bridge from block groups to every geography.
+"""2020 blocks as the bridge from block groups to every geography (a block's ward is its
+precinct's ward).
 
 Each block belongs to the block group (tract) named by the first 12 (11) digits of its GEOID.
 Each block counts in the feature of every geography that holds its interior point (EPSG:3735),
@@ -23,7 +24,7 @@ from precinctmap.registry.config import BlocksSpec
 from precinctmap.registry.sources import dataset_uri
 from precinctmap.registry.store import STORE_CRS, BoundaryError, read_features, set_for
 
-GEOGRAPHIES = ("precinct", "council_district", "municipality", "zcta")
+GEOGRAPHIES = ("precinct", "council_district", "municipality", "ward", "zcta")
 ALAND_FIELD = "ALAND20"
 SQ_M_PER_SQ_MI = 2_589_988.110336
 
@@ -111,6 +112,11 @@ def assign_blocks(
             out.log.append((f"no_{geo}_set", f"no {geo} boundary set covers {as_of}"))
             continue
         out.set_ids[geo] = ref.boundary_set_id
+        if geo == "ward":  # a block's ward is its precinct's ward (exact crosswalk)
+            frame[geo] = frame["precinct"].map(
+                _ward_of(con, out.set_ids["precinct"], ref.boundary_set_id)
+            )
+            continue
         subset = pts
         if geo == "council_district" and "precinct" in out.set_ids:
             subset = pts[_in_city(con, out, ref.boundary_set_id)]
@@ -138,3 +144,15 @@ def _in_city(con: duckdb.DuckDBPyConnection, out: BlockAssignment, council_set: 
         ).fetchall()
     }
     return out.blocks["precinct"].map(juris).isin(city)
+
+
+def _ward_of(con: duckdb.DuckDBPyConnection, precinct_set: str, ward_set: str) -> dict[str, str]:
+    """precinct name -> ward feature_id, from the exact precinct -> ward crosswalk."""
+    rows = con.execute(
+        "SELECT precinct_name, feature_id FROM precinct_crosswalk"
+        " WHERE precinct_set_id = ? AND target_set_id = ?",
+        [precinct_set, ward_set],
+    ).fetchall()
+    if not rows:
+        raise BoundaryError(f"no crosswalk from {precinct_set} to {ward_set}; run boundaries load")
+    return dict(rows)

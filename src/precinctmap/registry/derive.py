@@ -1,4 +1,4 @@
-"""Derived boundary sets: retroactive precinct merges and municipalities/townships.
+"""Derived boundary sets: retroactive precinct merges, municipalities/townships, and wards.
 
 Municipality/township features are exact unions of precincts by name prefix, named from TIGER
 places (cities, villages) and county subdivisions (townships). Places listed in carve_places
@@ -17,6 +17,7 @@ from precinctmap.registry.sources import dataset_uri, polygonal
 from precinctmap.registry.store import STORE_CRS, BoundaryError
 
 _JURISDICTION = re.compile(r"(.+?)(?: \d{2})?-[A-Z]{1,2}")
+_WARD = re.compile(r"(.+?)(?: (\d{2}))?-[A-Z]{1,2}")
 _PLACE_KINDS = {"25": "city", "47": "village"}  # TIGER LSAD; 57 = CDP, not a municipality
 
 
@@ -108,5 +109,44 @@ def precinct_jurisdictions(
                 "jurisdiction": str(hit["kind"].iloc[0]),
                 "geometry": cut,
             }
+        )
+    return gpd.GeoDataFrame(rows, geometry="geometry", crs=STORE_CRS)
+
+
+def precinct_ward(name: str) -> tuple[str, str | None]:
+    """'COLUMBUS 01-A' -> ('COLUMBUS', '01'); 'BLENDON-A' -> ('BLENDON', None): no ward number."""
+    m = _WARD.fullmatch(name)
+    if not m:
+        raise BoundaryError(f"precinct name {name!r} has no recognizable ward prefix")
+    return m.group(1), m.group(2)
+
+
+def precinct_wards(
+    parent: gpd.GeoDataFrame, spec: SetSpec, data_dir: Path, county: shapely.Geometry
+) -> gpd.GeoDataFrame:
+    """Dissolve precincts by name prefix including the ward number: 'COLUMBUS 01-A' and
+    'COLUMBUS 01-B' form 'Columbus Ward 01'. A jurisdiction whose precincts have no ward number
+    ('BLENDON-A') is one area, named like its municipality ('Blendon Township'). Every precinct
+    nests in exactly one ward, so ward results are always exact."""
+    places, towns = _places(spec, data_dir, county), _townships(spec, data_dir, county)
+    parts = [precinct_ward(n) for n in parent["feature_id"]]
+    work = parent.assign(
+        juris=[j for j, _ in parts],
+        ward=[w or "" for _, w in parts],
+    )
+    dissolved = work.dissolve(by=["juris", "ward"]).reset_index()
+    rows = []
+    for juris, ward, geom in zip(
+        dissolved["juris"], dissolved["ward"], dissolved.geometry, strict=True
+    ):
+        town, _ = _resolve(juris, spec, places, towns)
+        name = f"{town} Ward {ward}" if ward else town
+        rows.append(
+            {"feature_id": slug(name), "name": name, "jurisdiction": town, "geometry": geom}
+        )
+    ids = [r["feature_id"] for r in rows]
+    if len(set(ids)) != len(ids):
+        raise BoundaryError(
+            f"{spec.id}: ward names collide: {sorted({i for i in ids if ids.count(i) > 1})}"
         )
     return gpd.GeoDataFrame(rows, geometry="geometry", crs=STORE_CRS)

@@ -72,7 +72,7 @@ def _notes(
     con: duckdb.DuckDBPyConnection, contest_id: str, geography: str, retro: bool, excluded: float
 ) -> list[str]:
     notes = []
-    if retro and geography in ("precinct", "municipality"):
+    if retro and geography in ("precinct", "municipality", "ward"):
         notes.append(RETROACTIVE_PRECINCTS)
     if retro and geography == "council_district":
         notes.append(RETROACTIVE_COUNCIL)

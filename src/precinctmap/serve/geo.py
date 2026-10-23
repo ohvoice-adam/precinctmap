@@ -23,7 +23,7 @@ from precinctmap.serve.labels import (
 SERVE_CRS = 4326
 SIMPLIFY_DEGREES = 0.00003  # ~3 m; small enough that shared edges show no visible gaps
 GRID_DEGREES = 1e-6  # ~0.1 m coordinate rounding
-SERVABLE = ("precinct", "council_district", "municipality", "zcta", "county")
+SERVABLE = ("precinct", "council_district", "municipality", "ward", "zcta", "county")
 
 _CACHE: dict[tuple[str, str, bool], tuple[str, bytes]] = {}
 
@@ -34,7 +34,7 @@ class GeoNotFoundError(LookupError):
 
 def _notes(geography: str, retroactive: bool) -> list[str]:
     notes = []
-    if retroactive and geography in ("precinct", "municipality"):
+    if retroactive and geography in ("precinct", "municipality", "ward"):
         notes.append(RETROACTIVE_PRECINCTS)
     if retroactive and geography == "council_district":
         notes.append(RETROACTIVE_COUNCIL)

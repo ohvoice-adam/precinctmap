@@ -116,9 +116,10 @@ describe("AreaTable", () => {
   it("re-sorts on header click, marks aria-sort, and opens an area from its name", () => {
     const open = vi.fn();
     const table = new AreaTable(open, () => undefined);
-    table.render({ caption: "C", valueLabel: "Share", countLabel: "Votes", rows: [row("a", "B area", 0.1, 1), row("b", "A area", 0.9, 2)] });
+    table.render({ caption: "C", valueLabel: "Share", countLabel: "Votes", source: "f.xlsx", rows: [row("a", "B area", 0.1, 1), row("b", "A area", 0.9, 2)] });
     const names = (): string[] => [...table.root.querySelectorAll("tbody th")].map((th) => th.textContent);
     expect(names()).toEqual(["A area", "B area"]); // default: value, highest first
+    expect(table.current?.source).toBe("f.xlsx");
     const valueHeader = (): Element | null | undefined => table.root.querySelectorAll("thead th")[1];
     expect(valueHeader()?.getAttribute("aria-sort")).toBe("descending");
     (valueHeader()?.querySelector("button") as HTMLButtonElement).click();
