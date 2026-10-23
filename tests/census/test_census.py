@@ -106,6 +106,16 @@ def test_tract_only_table_and_reliability(review):
     assert zero.value == 0 and zero.moe > 0 and not zero.reliable  # 0 +/- 9: not reliable
 
 
+def test_naturalized_citizens(review):
+    count = stat(review, "precinct", "COLUMBUS 01-A", "naturalized_count")
+    assert count.value == pytest.approx(10)  # a third of tract 1's 30
+    share = stat(review, "precinct", "COLUMBUS 01-A", "naturalized_adult_citizen_share")
+    assert share.value == pytest.approx(30 / 280) and share.base == pytest.approx(280 / 3)
+    ward = stat(review, "ward", "columbus-ward-01", "naturalized_adult_citizen_share")
+    assert ward.value == pytest.approx(30 / 280)  # all of tract 1
+    assert stat(review, "precinct", "HAMILTON-A", "naturalized_count").value == pytest.approx(2.5)
+
+
 def test_density_uses_block_land_area(review):
     sq_mi = 1_000_000 * 0.09290304 / 2_589_988.110336  # block 1: 1000 x 1000 ft
     row = stat(review, "precinct", "COLUMBUS 01-A", "population_density")

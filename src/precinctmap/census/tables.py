@@ -82,6 +82,13 @@ MEASURES: tuple[Measure, ...] = (
     _share("noncitizen_share", "Not a U.S. citizen", G_IMM, "B05002", (21,), (1,), "people",
            "Foreign-born residents who are not U.S. citizens (B05002). The ACS does not ask"
            " about legal or immigration status."),
+    Measure("naturalized_count", "Naturalized U.S. citizens", G_IMM, "count", "B05002", (14,),
+            (), "pop", "people", "Foreign-born residents who became U.S. citizens by"
+            " naturalization, all ages (B05002)."),
+    _share("naturalized_adult_citizen_share", "Naturalized citizens, share of adult citizens",
+           G_IMM, "B05003", (11, 22), (9, 11, 20, 22), "citizens 18 and older",
+           "Naturalized citizens 18+ as a share of all citizens 18+, the citizen voting-age"
+           " population (B05003)."),
     _share("renter_share", "Renter households", G_HOUSE, "B25003", (3,), (1,), "households",
            "Share of occupied housing units that are renter-occupied (B25003).", "housing"),
     _share("rent_burdened_share", "Renters paying 30% or more of income on rent", G_HOUSE,
@@ -106,7 +113,7 @@ BY_ID = {m.metric: m for m in MEASURES}
 TABLES: tuple[str, ...] = tuple(sorted({m.table for m in MEASURES}))
 WEIGHTS: dict[str, Weight] = {m.table: m.weight for m in MEASURES}
 # Tables the summary file publishes only down to tracts; everything else uses block groups.
-TRACT_ONLY: frozenset[str] = frozenset({"B05002"})
+TRACT_ONLY: frozenset[str] = frozenset({"B05002", "B05003"})
 UNIT_DIGITS = {"block_group": 12, "tract": 11}
 
 

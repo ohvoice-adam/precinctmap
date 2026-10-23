@@ -12,7 +12,8 @@ from precinctmap.census.summary_file import file_name
 YEAR = 2024
 BG_A, BG_B, BG_C = "390490001001", "390490001002", "390490002001"  # x 0-2000, 2000-3000, 3000-5000
 TRACT_1, TRACT_2 = "39049000100", "39049000200"  # A + B, C
-LINES = {"B01001": 49, "B01003": 1, "B03002": 21, "B05002": 27, "B08301": 21, "B12001": 19,
+LINES = {"B01001": 49, "B01003": 1, "B03002": 21, "B05002": 27, "B05003": 23,
+         "B08301": 21, "B12001": 19,
          "B15003": 25, "B19001": 17, "B25003": 3, "B25070": 11, "C17002": 8}  # fmt: skip
 
 # table -> unit -> {line: (estimate, moe)}
@@ -34,8 +35,12 @@ DATA: dict[str, dict[str, dict[int, tuple[int, int]]]] = {
         BG_C: {1: (40, 6), 2: (10, 4), 3: (30, 6)},
     },
     "B05002": {
-        TRACT_1: {1: (300, 30), 13: (60, 15), 21: (30, 12)},
-        TRACT_2: {1: (100, 10), 13: (5, 4), 21: (0, 9)},
+        TRACT_1: {1: (300, 30), 13: (60, 15), 14: (30, 12), 21: (30, 12)},
+        TRACT_2: {1: (100, 10), 13: (5, 4), 14: (5, 4), 21: (0, 9)},
+    },
+    "B05003": {  # 9/20 native and 11/22 naturalized adults (male/female)
+        TRACT_1: {1: (300, 30), 9: (150, 15), 11: (20, 8), 20: (100, 12), 22: (10, 6)},  # 30/280
+        TRACT_2: {1: (100, 10), 9: (40, 8), 11: (0, 4), 20: (40, 8), 22: (0, 4)},
     },
 }
 
@@ -64,7 +69,7 @@ def write_national_tables(root: Path, year: int = YEAR) -> Path:
     for table, n in LINES.items():
         header = "GEO_ID|" + "|".join(f"{table}_{k}{i:03d}" for i in range(1, n + 1) for k in "EM")
         units = DATA.get(table, {})
-        level = "1400000US" if table == "B05002" else "1500000US"
+        level = "1400000US" if table in ("B05002", "B05003") else "1500000US"
         rows = [header, _row("0100000US", table, {1: (9_999, 0)})]
         rows.append(_row("1500000US390410001001", table, {1: (777, 50)}))  # Delaware County
         rows += [_row(f"{level}{u}", table, v) for u, v in units.items()]

@@ -48,7 +48,7 @@ Switch **Data** to *Census demographics* for American Community Survey 2020–20
 - **Education:** bachelor's degree or higher, graduate degree.
 - **Age and household:** adults 18 to 34, never married.
 - **Race and ethnicity:** White, Black, Hispanic or Latino, and Asian shares.
-- **Immigration:** born outside the U.S., not a U.S. citizen. The census doesn't ask about legal or immigration status.
+- **Immigration:** born outside the U.S., not a U.S. citizen, naturalized U.S. citizens (count), and naturalized citizens as a share of adult citizens (citizens 18 and older). The census doesn't ask about legal or immigration status.
 - **Housing and income:** renter households, renters paying 30% or more of income on rent, median household income, below 200% of the poverty line.
 - **Urbanism:** commuting by transit, walking or bike; working from home; people per square mile.
 
