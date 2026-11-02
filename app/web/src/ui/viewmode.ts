@@ -5,8 +5,8 @@ import { el } from "./dom";
 
 export type ViewMode = "map" | "table" | "both";
 
-/** Narrowest viewport with room for the sidebar, a usable map and the table. */
-export const WIDE_QUERY = "(min-width: 1180px)";
+/** Narrowest viewport with room for the floating sheet (--sheet-w), a usable map (~470px) and the table (--table-w). */
+export const WIDE_QUERY = "(min-width: 1360px)";
 
 const LABELS: Record<ViewMode, string> = { map: "Map", table: "Table", both: "Map and table" };
 
