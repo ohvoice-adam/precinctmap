@@ -110,11 +110,12 @@ def _insert_codes(con: duckdb.DuckDBPyConnection, set_id: str, features: gpd.Geo
 
 
 def remove_set(con: duckdb.DuckDBPyConnection, set_id: str) -> None:
-    """Delete a set with its features, repairs, and any crosswalk built on it."""
+    """Delete a set with its features, repairs, land areas, and any crosswalk built on it."""
     for table, col in (
         ("features", "boundary_set_id"),
         ("feature_codes", "boundary_set_id"),
         ("geometry_repairs", "boundary_set_id"),
+        ("area_land", "boundary_set_id"),
         ("boundary_sets", "boundary_set_id"),
     ):
         con.execute(f"DELETE FROM {table} WHERE {col} = ?", [set_id])

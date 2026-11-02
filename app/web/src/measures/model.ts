@@ -5,7 +5,7 @@ import type { Geography } from "../types";
 import { gradeLabel, num } from "./scales";
 
 export type Dataset = "property" | "census";
-export type MeasureKind = "count" | "share" | "currency" | "currency_delta" | "score" | "density";
+export type MeasureKind = "count" | "share" | "currency" | "currency_delta" | "score" | "density" | "ratio";
 
 export interface MeasureMetric {
   metric: string;
@@ -91,6 +91,8 @@ export function formatValue(kind: MeasureKind, value: number, dataset: Dataset =
       return `${value.toFixed(2)} (about ${gradeLabel(value)})`;
     case "density":
       return `${num(value)} per sq mi`;
+    case "ratio":
+      return value.toFixed(2);
     default:
       return num(value);
   }

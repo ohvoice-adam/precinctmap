@@ -72,10 +72,20 @@ class BlocksSpec:
 
 
 @dataclass(frozen=True)
+class WaterSpec:
+    """TIGER area water (lakes, ponds, rivers): cut from every feature for its land area."""
+
+    source: str
+    vintage: int
+    where: str | None = None
+
+
+@dataclass(frozen=True)
 class RegistryConfig:
     county: str
     blocks: BlocksSpec
     sets: tuple[SetSpec, ...]
+    water: WaterSpec | None = None
 
 
 def _set_spec(raw: dict[str, Any]) -> SetSpec:
@@ -107,4 +117,7 @@ def load_config(path: Path = DEFAULT_CONFIG) -> RegistryConfig:
         if s.derived_from and s.derived_from not in seen:
             raise RegistryConfigError(f"set {s.id}: derives from {s.derived_from}, listed later")
         seen.add(s.id)
-    return RegistryConfig(county=raw["county"], blocks=BlocksSpec(**raw["blocks"]), sets=sets)
+    water = WaterSpec(**raw["water"]) if "water" in raw else None
+    return RegistryConfig(
+        county=raw["county"], blocks=BlocksSpec(**raw["blocks"]), sets=sets, water=water
+    )

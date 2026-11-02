@@ -14,6 +14,7 @@ import duckdb
 import pandas as pd
 
 from precinctmap.parcels.areas import GEOGRAPHIES, assigned_sql
+from precinctmap.parcels.voters import refresh_voter_stats
 
 
 @dataclass(frozen=True)
@@ -252,7 +253,7 @@ def materialize_stats(con: duckdb.DuckDBPyConnection, file_id: str) -> int:
     except Exception:
         con.execute("ROLLBACK")
         raise
-    return len(long)
+    return len(long) + refresh_voter_stats(con, file_id)  # needs housing_units, written above
 
 
 class StatsTotalsError(AssertionError):

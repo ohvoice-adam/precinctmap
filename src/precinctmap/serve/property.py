@@ -7,7 +7,8 @@ from typing import Any
 import duckdb
 
 from precinctmap.parcels.areas import assigned_sql
-from precinctmap.parcels.stats import BY_ID, METRICS
+from precinctmap.parcels.stats import METRICS, Metric
+from precinctmap.parcels.voters import REGISTRATION_NOTE, VOTER_IDS, VOTER_METRICS, VoterMetric
 from precinctmap.serve.labels import GEOGRAPHY_LABELS, NOT_IN_COLUMBUS, ZCTA_NOTE
 from precinctmap.serve.results import NotFoundError
 
@@ -21,9 +22,15 @@ RENTAL = (
 )
 CONDITION = "Building condition (COND) is blank in this auditor file, so it cannot be mapped."
 
+# Parcel measures, then the registered-voter measures (parcels/voters.py), in picker order.
+CATALOG: tuple[Metric | VoterMetric, ...] = (*METRICS, *VOTER_METRICS)
+LOOKUP = {m.metric: m for m in CATALOG}
+
 
 def group_of(metric: str) -> str:
     """Heading the metric is listed under in the map's measure picker."""
+    if metric in VOTER_IDS:
+        return "Registered voters"
     if metric == "housing_units":
         return "Housing units"
     if "grade" in metric:
@@ -40,11 +47,38 @@ def _active(con: duckdb.DuckDBPyConnection) -> tuple[str, str, Any] | None:
     return None if row is None else (str(row[0]), str(row[1]), row[2])
 
 
+def _registration(con: duckdb.DuckDBPyConnection, file_id: str) -> str | None:
+    """Label of the election whose registered voters the voter measures use, if any."""
+    row = con.execute(
+        "SELECT e.label FROM parcel_registration r JOIN elections e USING (election_id)"
+        " WHERE r.file_id = ?",
+        [file_id],
+    ).fetchone()
+    return None if row is None else str(row[0])
+
+
+def _description(m: Metric | VoterMetric, election: str | None) -> str:
+    if m.metric in VOTER_IDS and election:
+        return f"{m.description} Registered voters: {election}."
+    return m.description
+
+
+def _voter_note(election: str | None) -> str:
+    return f"{REGISTRATION_NOTE} Election used: {election or 'none loaded'}."
+
+
 def property_catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
     active = _active(con)
     if active is None:
         return None
     file_id, filename, as_of = active
+    election = _registration(con, file_id)
+    shown = {
+        m
+        for (m,) in con.execute(
+            "SELECT DISTINCT metric FROM parcel_stats WHERE file_id = ?", [file_id]
+        ).fetchall()
+    }
     geos = [
         g
         for (g,) in con.execute(
@@ -63,12 +97,13 @@ def property_catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
                 "metric": m.metric,
                 "label": m.label,
                 "kind": m.kind,
-                "description": m.description,
+                "description": _description(m, election),
                 "group": group_of(m.metric),
             }
-            for m in METRICS
+            for m in CATALOG
+            if m.metric in shown  # voter measures only once an election has registration
         ],
-        "notes": [UNIVERSE, RENTAL, CONDITION],
+        "notes": [UNIVERSE, RENTAL, CONDITION] + ([_voter_note(election)] if election else []),
     }
 
 
@@ -80,7 +115,7 @@ def _require(con: duckdb.DuckDBPyConnection) -> tuple[str, str, Any]:
 
 
 def property_stats(con: duckdb.DuckDBPyConnection, metric: str, geography: str) -> dict[str, Any]:
-    m = BY_ID.get(metric)
+    m = LOOKUP.get(metric)
     if m is None:
         raise NotFoundError(f"unknown property metric {metric!r}")
     file_id, filename, as_of = _require(con)
@@ -91,8 +126,12 @@ def property_stats(con: duckdb.DuckDBPyConnection, metric: str, geography: str) 
     ).fetchall()
     if not rows:
         raise NotFoundError(f"no property statistics for {geography!r}")
-    rental = "rental" in metric or "unit" in metric or metric in ("llc_owned", "owner_elsewhere")
-    notes = [UNIVERSE] + ([RENTAL] if rental else [])
+    voter = metric in VOTER_IDS
+    rental = not voter and (
+        "rental" in metric or "unit" in metric or metric in ("llc_owned", "owner_elsewhere")
+    )
+    election = _registration(con, file_id) if voter else None
+    notes = [UNIVERSE] + ([RENTAL] if rental else []) + ([_voter_note(election)] if voter else [])
     if geography == "council_district":
         notes.append(NOT_IN_COLUMBUS)
     if geography == "zcta":
@@ -102,7 +141,7 @@ def property_stats(con: duckdb.DuckDBPyConnection, metric: str, geography: str) 
         "metric": m.metric,
         "label": m.label,
         "kind": m.kind,
-        "description": m.description,
+        "description": _description(m, election),
         "geography": geography,
         "geography_label": GEOGRAPHY_LABELS[geography],
         "boundary_set_id": rows[0][0],
@@ -152,7 +191,7 @@ def property_detail(con: duckdb.DuckDBPyConnection, geography: str, feature: str
                 "value": rows[m.metric][0],
                 "n": rows[m.metric][1],
             }
-            for m in METRICS
+            for m in CATALOG
             if m.metric in rows
         ],
         "grades": [{"grade": g, "parcels": int(n)} for g, n in grades],
@@ -205,7 +244,7 @@ def property_export_csv(con: duckdb.DuckDBPyConnection, geography: str) -> str:
                 fid,
                 name or fid,
                 metric,
-                BY_ID[metric].label,
+                LOOKUP[metric].label,
                 value,
                 n,
                 as_of.isoformat(),

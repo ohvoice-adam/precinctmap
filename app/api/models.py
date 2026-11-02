@@ -47,7 +47,7 @@ class CatalogElection(BaseModel):
 class MeasureMetric(BaseModel):
     metric: str
     label: str
-    kind: str  # count | share | currency | currency_delta | score | density
+    kind: str  # count | share | currency | currency_delta | score | density | ratio
     description: str
     group: str
     universe: str | None = None  # what `n` counts (census measures)

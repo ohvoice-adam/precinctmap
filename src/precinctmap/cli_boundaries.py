@@ -10,9 +10,11 @@ from precinctmap.aggregate.run import aggregate
 from precinctmap.cli_aggregate import echo_summaries
 from precinctmap.config import load_settings
 from precinctmap.io.db import get_connection
+from precinctmap.parcels.voters import refresh_voter_stats
 from precinctmap.registry.blocks import load_blocks
 from precinctmap.registry.config import DEFAULT_CONFIG, RegistryConfig, load_config
 from precinctmap.registry.crosswalk_build import build_crosswalks, crosswalk_pairs
+from precinctmap.registry.land import build_land
 from precinctmap.registry.loader import load_registry
 from precinctmap.registry.report import coverage
 
@@ -60,6 +62,12 @@ def load(
             + (f" ({r.features} features, {r.repairs} repairs)" if r.features else "")
         )
         changed = changed or r.action != "unchanged"
+    land = [r for r in build_land(con, cfg, settings.data_dir) if r.action == "built"]
+    for built in land:
+        typer.echo(
+            f"land {built.boundary_set_id}: {built.features} features,"
+            f" {built.area_sqmi:,.2f} sq mi, {built.water_sqmi:,.2f} water"
+        )
     if changed or _missing_pairs(con, cfg):
         for s in build_crosswalks(con, cfg):
             typer.echo(
@@ -70,6 +78,8 @@ def load(
         echo_summaries(aggregate(con))  # crosswalks changed: rebuild results by geography
     else:
         typer.echo("crosswalks up to date")
+        if land:  # new land areas: the voter densities change even if results don't
+            typer.echo(f"registered-voter measures: {refresh_voter_stats(con):,} rows")
 
 
 @boundaries_app.command("list")

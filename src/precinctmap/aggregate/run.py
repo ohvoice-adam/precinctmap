@@ -4,6 +4,7 @@ import duckdb
 
 from precinctmap.aggregate.materialize import materialize_election
 from precinctmap.aggregate.reconcile import ReconcileSummary, reconcile_election
+from precinctmap.parcels.voters import refresh_voter_stats
 
 
 def election_ids(con: duckdb.DuckDBPyConnection) -> list[str]:
@@ -13,8 +14,10 @@ def election_ids(con: duckdb.DuckDBPyConnection) -> list[str]:
 def aggregate(
     con: duckdb.DuckDBPyConnection, elections: list[str] | None = None
 ) -> list[ReconcileSummary]:
-    """Rebuild geo_* tables for each election and assert its totals reconcile."""
+    """Rebuild geo_* tables for each election and assert its totals reconcile, then refresh the
+    property layer's registered-voter measures (they use the most recent election)."""
     out: list[ReconcileSummary] = []
     for e in elections or election_ids(con):
         out += reconcile_election(con, e, materialize_election(con, e))
+    refresh_voter_stats(con)  # property's voter measures follow the most recent election
     return out
