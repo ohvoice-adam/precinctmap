@@ -59,17 +59,19 @@ DATASETS: tuple[Dataset, ...] = (
     ),
     Dataset(
         "tiger",
-        "Census geography: county outline, places, townships, ZIP areas (ZCTA), 2020 blocks",
-        ("boundary_sets", "features", "census_blocks"),
+        "Census geography: county outline, places, townships, ZIP areas (ZCTA), 2020 blocks,"
+        " area water",
+        ("boundary_sets", "features", "census_blocks", "area_land"),
         "U.S. Census Bureau, TIGER/Line shapefiles",
-        "https://www2.census.gov/geo/tiger/ (TIGER<year>/COUNTY, PLACE, COUSUB, ZCTA520; "
-        "TIGER2020/TABBLOCK20 for blocks)",
+        "https://www2.census.gov/geo/tiger/ (TIGER<year>/COUNTY, PLACE, COUSUB, ZCTA520, "
+        "AREAWATER; TIGER2020/TABBLOCK20 for blocks)",
         "Yearly (late summer); 2020 blocks and ZCTA definitions change only with the next census.",
         "Download into data/boundaries/, point config/boundaries.toml at it, `boundaries load "
         "--replace <set>`.",
         "Public domain (U.S. government work).",
         "TIGER places and county subdivisions are used only to cut villages with no precincts "
-        "of their own out of their township precincts; they are not stored as separate sets.",
+        "of their own out of their township precincts; they are not stored as separate sets. "
+        "Area water is subtracted from every area's polygon for its land area (area_land).",
     ),
     Dataset(
         "crosswalks", "Precinct-to-area crosswalks",
@@ -93,7 +95,14 @@ DATASETS: tuple[Dataset, ...] = (
     ),
     Dataset(
         "parcels", "Residential property (auditor parcels)",
-        ("parcel_files", "parcels", "parcel_assignments", "parcel_log", "parcel_stats"),
+        (
+            "parcel_files",
+            "parcels",
+            "parcel_assignments",
+            "parcel_log",
+            "parcel_stats",
+            "parcel_registration",
+        ),
         "Franklin County Auditor",
         "https://www.franklincountyauditor.com/ (real estate data downloads: Parcel.csv and its "
         "field-definition PDF)",

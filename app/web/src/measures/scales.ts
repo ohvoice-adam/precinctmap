@@ -71,6 +71,8 @@ export function measureScale(kind: MeasureKind, label: string, dataset: Dataset 
       return scoreScale(label);
     case "density":
       return { kind: "sequential", title: label, bins: ladder([0, 500, 1000, 2000, 3000, 4000, 5000, 7500, INF], SEQUENTIAL, num) };
+    case "ratio": // registered voters per housing unit: county 1.53, most precincts 0.9-2.4
+      return { kind: "sequential", title: label, bins: ladder([0, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, INF], SEQUENTIAL, (x) => x.toFixed(2)) };
     default:
       return { kind: "sequential", title: label, bins: ladder([0, 25, 50, 100, 250, 500, 1000, 2500, INF], SEQUENTIAL, num) };
   }

@@ -56,7 +56,7 @@ describe("property scales", () => {
   });
 
   it("never uses party red or blue", () => {
-    const kinds: MeasureKind[] = ["count", "share", "currency", "currency_delta", "score", "density"];
+    const kinds: MeasureKind[] = ["count", "share", "currency", "currency_delta", "score", "density", "ratio"];
     for (const k of kinds) {
       for (const b of [...measureScale(k, "x").bins, ...measureScale(k, "x", "census").bins]) {
         const h = hue(b.color); // same bands as the election palette test
@@ -119,5 +119,14 @@ describe("census measures", () => {
     expect(binOf(measureScale("share", "x"), 0.07, null)).toBe(0); // property: 0-10%
     expect(binOf(measureScale("currency", "x", "census"), 67_500, null)).toBe(3); // $65k-80k
     expect(binOf(measureScale("density", "x"), 4_065, null)).toBe(5); // 4,000-5,000
+  });
+
+  it("formats and bins registered voters per housing unit", () => {
+    expect(formatValue("ratio", 1.6449)).toBe("1.64");
+    const ratio = measureScale("ratio", "x");
+    expect(ratio.bins.map((b) => b.label)).toEqual(
+      ["0.00–0.75", "0.75–1.00", "1.00–1.25", "1.25–1.50", "1.50–1.75", "1.75–2.00", "2.00–2.50", "2.50+"]);
+    expect(binOf(ratio, 1.53, null)).toBe(4); // the county: 1.50-1.75
+    expect(binOf(ratio, 3.83, null)).toBe(7); // top bin is open
   });
 });

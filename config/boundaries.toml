@@ -13,6 +13,13 @@ id_field = "GEOID20"
 pop_field = "POP20"
 housing_field = "HOUSING20"
 
+# --- Area water: subtracted from each feature's polygon for its land area ----------------
+# (registered voters per square mile). Lakes, ponds, reservoirs and wide rivers (MTFCC H2030,
+# H2040, H3010, H3020); 3,126 polygons, 11.19 sq mi in the 2026 file.
+[water]
+source = "boundaries/tiger_dl/tl_2026_39049_areawater.zip"
+vintage = 2026
+
 # --- County outline (first: other sets clip to it) -----------------------------------
 
 [[sets]]
