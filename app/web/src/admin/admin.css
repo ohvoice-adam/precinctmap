@@ -12,7 +12,8 @@ body {
 }
 
 .admin h1 {
-  font-size: 1.4rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
   margin: 0 0 0.5rem;
 }
 
@@ -21,7 +22,8 @@ body {
   gap: 0.8rem;
   padding: 1rem;
   border: 1px solid var(--hairline);
-  border-radius: 6px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .upload .field {

@@ -1,5 +1,5 @@
-// Map / table / side-by-side switch. Side by side is offered (and is the default) only when the
-// viewport is wide enough; on narrower screens a "both" choice falls back to the map.
+// Map / table / side-by-side switch. The map alone is the default; side by side is offered only
+// when the viewport is wide enough, and on narrower screens a "both" choice falls back to the map.
 
 import { el } from "./dom";
 
@@ -12,7 +12,7 @@ const LABELS: Record<ViewMode, string> = { map: "Map", table: "Table", both: "Ma
 
 /** The layout actually shown for a choice at the current width. */
 export function effectiveView(choice: ViewMode | null, wide: boolean): ViewMode {
-  if (choice === null) return wide ? "both" : "map";
+  if (choice === null) return "map";
   return choice === "both" && !wide ? "map" : choice;
 }
 

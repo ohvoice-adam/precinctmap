@@ -27,7 +27,8 @@ export interface MetricContext {
   rank: number[]; // contender indexes by contest-wide votes, descending
 }
 
-function contestTotals(results: Results): number[] {
+/** Votes per choice summed over the mapped areas (choices order). */
+export function contestTotals(results: Results): number[] {
   const totals = results.choices.map(() => 0);
   for (const f of Object.values(results.features)) {
     f.v?.forEach((v, i) => (totals[i] = (totals[i] ?? 0) + v));

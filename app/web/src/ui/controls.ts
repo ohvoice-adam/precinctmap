@@ -3,8 +3,8 @@
 import type { Change, Metric, Selection } from "../state";
 import { METRIC_LABELS, contenders, findContest, findElection, metricsFor, usesChoice } from "../state";
 import type { Catalog, CatalogContest, Geography } from "../types";
-import { el, labeled, option } from "./dom";
-
+import { el, option } from "./dom";
+import { ChipGroup, Picker, step } from "./steps";
 
 const PARTY_GROUPS: Record<string, string> = {
   Dem: "Democratic ballot",
@@ -12,12 +12,6 @@ const PARTY_GROUPS: Record<string, string> = {
   Lib: "Libertarian ballot",
   Grn: "Green ballot",
 };
-
-function select(onChange: (value: string) => void): HTMLSelectElement {
-  const s = el("select");
-  s.addEventListener("change", () => { onChange(s.value); });
-  return s;
-}
 
 function contestGroups(contests: CatalogContest[], filter: string): Map<string, CatalogContest[]> {
   const groups = new Map<string, CatalogContest[]>();
@@ -33,28 +27,18 @@ function contestGroups(contests: CatalogContest[], filter: string): Map<string, 
   return groups;
 }
 
+/** The election steps, in drill-down order: year, election, contest, what to map, geography. */
 export class Controls {
-  readonly root = el("form", { class: "controls", "aria-label": "Map selection" });
-  private readonly year = select((v) => {
-    this.emit({ year: Number(v) });
-  });
-  private readonly election = select((v) => {
-    this.emit({ election: v });
-  });
-  private readonly search = el("input", { type: "search", placeholder: "Filter contests", "aria-label": "Filter contests" });
-  private readonly contest = select((v) => {
-    this.emit({ contest: v });
-  });
-  private readonly metric = select((v) => {
-    this.emit({ metric: v as Metric });
-  });
-  private readonly choice = select((v) => {
-    this.emit({ choice: v });
-  });
-  private readonly choiceField: HTMLElement;
-  private readonly geography = select((v) => {
-    this.emit({ geography: v as Geography });
-  });
+  readonly root = el("form", { class: "controls steps", "aria-label": "Map selection" });
+  private readonly year = new Picker("ctl-year", (v) => { this.emit({ year: Number(v) }); });
+  private readonly election = new Picker("ctl-election", (v) => { this.emit({ election: v }); });
+  private readonly search = el("input", { type: "search", class: "filter", placeholder: "Filter contests", "aria-label": "Filter contests" });
+  private readonly contest = new Picker("ctl-contest", (v) => { this.emit({ contest: v }); }, true);
+  private readonly metric = new ChipGroup("ctl-metric", (v) => { this.emit({ metric: v as Metric }); });
+  private readonly choice = new Picker("ctl-choice", (v) => { this.emit({ choice: v }); });
+  private readonly choiceLabel = el("label", { class: "sub-label", for: "ctl-choice" }, "Candidate");
+  private readonly choiceField = el("div", { class: "subfield" }, this.choiceLabel, this.choice.root);
+  private readonly geography = new ChipGroup("ctl-geography", (v) => { this.emit({ geography: v as Geography }); });
   private last: { catalog: Catalog; sel: Selection } | null = null;
 
   constructor(private readonly emit: (change: Change) => void) {
@@ -62,43 +46,38 @@ export class Controls {
     this.search.addEventListener("input", () => {
       if (this.last) this.fillContests(this.last.catalog, this.last.sel);
     });
-    this.choiceField = labeled("Candidate", this.choice, "ctl-choice");
     this.root.append(
-      labeled("Year", this.year, "ctl-year"),
-      labeled("Election", this.election, "ctl-election"),
-      el("div", { class: "field" }, el("label", { for: "ctl-contest" }, "Contest"), this.search, this.contest),
-      labeled("Show", this.metric, "ctl-metric"),
-      this.choiceField,
-      labeled("Map by", this.geography, "ctl-geography"),
+      step(1, "Year", "ctl-year", this.year.root),
+      step(2, "Election", "ctl-election", this.election.root),
+      step(3, "Contest", "ctl-contest", this.contest.root, this.search),
+      step(4, "What to map", "ctl-metric", this.metric.root, this.choiceField),
+      step(5, "Map by", "ctl-geography", this.geography.root),
     );
-    this.contest.id = "ctl-contest";
   }
 
   render(catalog: Catalog, sel: Selection): void {
     this.last = { catalog, sel };
     const election = findElection(catalog, sel);
     const contest = findContest(catalog, sel);
-    this.year.replaceChildren(...catalog.years.map((y) => option(String(y), String(y), y === sel.year)));
-    this.election.replaceChildren(
+    this.year.select.replaceChildren(...catalog.years.map((y) => option(String(y), String(y), y === sel.year)));
+    this.year.sync();
+    this.election.select.replaceChildren(
       ...catalog.elections
         .filter((e) => e.year === sel.year)
         .map((e) => option(e.election_id, `${e.label}${e.certified ? "" : " (unofficial)"}`, e.election_id === sel.election)),
     );
+    this.election.sync();
     this.fillContests(catalog, sel);
-    this.metric.replaceChildren(
-      ...metricsFor(contest).map((m) => option(m, METRIC_LABELS[m], m === sel.metric)),
-    );
+    this.metric.render(metricsFor(contest).map((m) => ({ value: m, label: METRIC_LABELS[m] })), sel.metric);
     const turnout = contest.type === "turnout";
     this.choiceField.hidden = !usesChoice(sel.metric);
-    const label = this.choiceField.querySelector("label");
-    if (label) label.textContent = turnout ? "Party ballot" : "Candidate";
-    this.choice.replaceChildren(
+    this.choiceLabel.textContent = turnout ? "Party ballot" : "Candidate";
+    this.choice.select.replaceChildren(
       ...contenders(contest).map((c) =>
         option(c.choice_id, c.party && !turnout ? `${c.name} (${c.party})` : c.name, c.choice_id === sel.choice)),
     );
-    this.geography.replaceChildren(
-      ...election.geographies.map((g) => option(g.geography, g.label, g.geography === sel.geography)),
-    );
+    this.choice.sync();
+    this.geography.render(election.geographies.map((g) => ({ value: g.geography, label: g.label })), sel.geography);
   }
 
   private fillContests(catalog: Catalog, sel: Selection): void {
@@ -110,6 +89,7 @@ export class Controls {
     }
     const shown = [...groups.values()].flat().some((c) => c.contest_id === sel.contest);
     if (!shown) nodes.unshift(option(sel.contest, findContest(catalog, sel).name, true)); // keep current visible
-    this.contest.replaceChildren(...nodes);
+    this.contest.select.replaceChildren(...nodes);
+    this.contest.sync(true);
   }
 }

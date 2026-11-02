@@ -50,8 +50,8 @@ describe("sortRows", () => {
 });
 
 describe("effectiveView", () => {
-  it("defaults to side by side when wide and the map when narrow", () => {
-    expect(effectiveView(null, true)).toBe("both");
+  it("defaults to the map alone at every width", () => {
+    expect(effectiveView(null, true)).toBe("map");
     expect(effectiveView(null, false)).toBe("map");
   });
 

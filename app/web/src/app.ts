@@ -15,7 +15,7 @@ import { applyChange, findContest, findElection, fromParams, resolve, toParams }
 import type { Catalog, Results } from "./types";
 import type { Change } from "./state";
 import { Controls } from "./ui/controls";
-import { compact, el, labeled, option } from "./ui/dom";
+import { compact, el } from "./ui/dom";
 import { STATUS_TEXT, marginSides, tooltipLines } from "./ui/format";
 import { measureOnlyButton } from "./ui/export";
 import { AreaTable } from "./ui/table";
@@ -23,7 +23,13 @@ import { measureTable, resultsTable } from "./ui/table-rows";
 import { ViewToggle } from "./ui/viewmode";
 import { renderLegend } from "./ui/legend";
 import { renderDetail, renderDetailError } from "./ui/panel";
+import { ChipGroup } from "./ui/steps";
+import { renderResultSummary } from "./ui/summary";
+import { FLOATING_SHEET_QUERY, placeDetail, revealDetail, touchTracker } from "./ui/phone";
 import { Tooltip } from "./ui/tooltip";
+
+/** Short names for the Data switch (the catalog labels carry the vintage, shown in the sheet). */
+const DATASET_LABELS: Record<Dataset, string> = { property: "Property", census: "Census" };
 
 /** The stage: a bar (view switch), and a body holding the map pane, table, panel and tooltip. */
 export interface Stage {
@@ -47,8 +53,10 @@ export class App {
   private seq = 0;
   private readonly controls = new Controls((c) => void this.change(c));
   private readonly measureControls = new MeasureControls((c) => void this.changeMeasure(c));
-  private readonly dataset = el("select");
-  private readonly datasetField = labeled("Data", this.dataset, "ctl-dataset");
+  private readonly dataset = new ChipGroup("ctl-dataset", (d) => {
+    const g = (this.mode === "results" ? this.sel?.geography : this.msel?.geography) ?? "precinct";
+    void this.load(d === "results" ? { g } : { d, g }, true);
+  }, true);
   private mode: "results" | Dataset = "results";
   private msel: MeasureSelection | null = null;
   private mstats: MeasureStats | null = null;
@@ -62,14 +70,14 @@ export class App {
   private readonly table = new AreaTable((id) => void this.openDetail(id), (id) => { this.map.setHover(id); });
 
   constructor(sidebar: HTMLElement, { stage, bar, body, mapEl }: Stage) {
-    sidebar.append(this.datasetField, this.controls.root, this.measureControls.root, this.summary, this.legend, this.notes, this.exports);
-    this.dataset.addEventListener("change", () => {
-      const g = (this.mode === "results" ? this.sel?.geography : this.msel?.geography) ?? "precinct";
-      const d = this.dataset.value;
-      void this.load(d === "results" ? { g } : { d, g }, true);
-    });
+    this.dataset.root.removeAttribute("aria-labelledby");
+    this.dataset.root.setAttribute("aria-label", "Data");
+    sidebar.append(this.dataset.root, this.controls.root, this.measureControls.root, this.summary, this.legend, this.notes, this.exports);
+    this.controls.root.hidden = true; // until the catalog says which set applies
+    this.measureControls.root.hidden = true;
     this.panel.hidden = true;
-    body.append(this.table.root, this.panel);
+    body.append(this.table.root);
+    placeDetail(this.panel, body, sidebar.firstElementChild ?? this.dataset.root);
     this.map = new AreaMap(mapEl);
     this.tooltip = new Tooltip(body);
     const toggle = new ViewToggle((view) => {
@@ -78,7 +86,18 @@ export class App {
     });
     bar.append(toggle.root);
     toggle.apply();
-    this.map.map.on("mousemove", (e) => { this.hover(e.point.x, e.point.y, this.map.hitAt(e)); });
+    // The sheet floats over the map's left edge above phone width: keep the county out from under it.
+    const floating = window.matchMedia(FLOATING_SHEET_QUERY);
+    const inset = (): void => {
+      this.map.setLeftInset(floating.matches ? sidebar.getBoundingClientRect().right - mapEl.getBoundingClientRect().left : 0);
+    };
+    floating.addEventListener("change", inset);
+    void this.map.ready.then(inset);
+    const touching = touchTracker(mapEl);
+    this.map.map.on("mousemove", (e) => {
+      if (touching()) return; // a tap: the detail panel answers it, not the hover card
+      this.hover(e.point.x, e.point.y, this.map.hitAt(e));
+    });
     this.map.map.on("mouseout", () => { this.tooltip.hide(); this.map.setHover(null); });
     this.map.map.on("click", (e) => {
       const hit = this.map.hitAt(e);
@@ -91,9 +110,7 @@ export class App {
   async start(): Promise<void> {
     this.catalog = await fetchCatalog();
     const measures = this.measureCatalogs();
-    this.datasetField.hidden = measures.length === 0;
-    this.dataset.replaceChildren(option("results", "Election results", true),
-      ...measures.map((c) => option(c.dataset, c.label, false)));
+    this.dataset.root.hidden = measures.length === 0;
     if (this.catalog.elections.length === 0 && measures.length === 0) {
       this.summary.replaceChildren(el("p", {}, "No elections have been loaded yet. An admin can add one from the upload page."));
       return;
@@ -122,7 +139,8 @@ export class App {
     const measures = this.measureCatalogs();
     const cat = measures.find((c) => c.dataset === raw.d) ?? (this.catalog.elections.length === 0 ? measures[0] : undefined);
     this.mode = cat ? cat.dataset : "results";
-    this.dataset.value = this.mode;
+    this.dataset.render([{ value: "results", label: "Election results" },
+      ...measures.map((c) => ({ value: c.dataset, label: DATASET_LABELS[c.dataset] }))], this.mode);
     this.controls.root.hidden = this.mode !== "results";
     this.measureControls.root.hidden = this.mode === "results";
     if (cat) {
@@ -178,8 +196,8 @@ export class App {
     this.table.render(resultsTable(areas, values, ctx, results, findContest(this.catalog, sel).name));
     this.map.paint(scale.bins.map((b) => b.color), states);
     const legendKind = results.type === "turnout" ? "turnout" : "results";
-    renderLegend(this.legend, scale, sel.geography, new Set([...states.values()].map((s) => s.bin)), legendKind);
-    this.renderSidebar(sel, results);
+    renderLegend(this.legend, scale, sel.geography, states, legendKind);
+    this.renderSidebar(sel, results, ctx);
   }
 
   private async drawMeasure(cat: MeasureCatalog, msel: MeasureSelection): Promise<void> {
@@ -196,21 +214,12 @@ export class App {
     this.mstats = d.stats;
     this.table.render(measureTable(d.areas, d.stats));
     this.map.paint(d.scale.bins.map((b) => b.color), d.states);
-    renderLegend(this.legend, d.scale, msel.geography, new Set([...d.states.values()].map((s) => s.bin)), cat.dataset);
+    renderLegend(this.legend, d.scale, msel.geography, d.states, cat.dataset);
     renderMeasureSidebar(this.summary, this.notes, this.exports, d.stats, cat, this.measureOnly());
   }
 
-  private renderSidebar(sel: Selection, results: Results): void {
-    if (!this.catalog) return;
-    const election = findElection(this.catalog, sel);
-    const contest = findContest(this.catalog, sel);
-    this.summary.replaceChildren(
-      ...compact(
-      el("h2", {}, contest.name),
-      el("p", { class: "small" }, `${election.label}${contest.party ? ` · ${contest.party} ballot` : ""} · ${results.geography_label}`),
-      contest.vote_for && contest.vote_for > 1 ? el("p", { class: "small" }, `Vote for ${contest.vote_for}: shares are of all votes cast, not of voters.`) : null,
-      ),
-    );
+  private renderSidebar(sel: Selection, results: Results, ctx: MetricContext): void {
+    renderResultSummary(this.summary, results, ctx);
     this.notes.replaceChildren(...(results.notes.length ? [el("h2", {}, "Notes"), el("ul", {}, ...results.notes.map((n) => el("li", {}, n)))] : []));
     const link = (kind: "csv" | "geojson", label: string): HTMLAnchorElement | null => {
       const href = exportUrl(kind, sel.election, sel.contest, sel.geography);
@@ -266,6 +275,7 @@ export class App {
         console.error(`${dataset} detail failed`, err);
         renderDetailError(this.panel, dataset === "census" ? "No census estimates for this area." : "No residential parcels in this area.");
       }
+      revealDetail(this.panel);
       return;
     }
     if (!this.sel) return;
@@ -276,6 +286,7 @@ export class App {
       console.error("detail failed", err);
       renderDetailError(this.panel, "Could not load details for this area.");
     }
+    revealDetail(this.panel);
   }
 
   private closeDetail(): void {

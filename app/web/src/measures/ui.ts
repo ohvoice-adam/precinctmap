@@ -1,31 +1,32 @@
 // Area-statistics UI: controls (measure, geography), detail panel, sidebar notes and export.
 
-import { compact, el, labeled, option } from "../ui/dom";
+import { compact, el, option } from "../ui/dom";
+import { ChipGroup, Picker, step } from "../ui/steps";
 import type { MeasureCatalog, MeasureDetail, MeasureSelection, MeasureStats } from "./model";
 import { formatMoe, formatValue } from "./model";
 
+/** Property and census steps: measure (grouped by topic), then geography. */
 export class MeasureControls {
-  readonly root = el("div", { class: "controls" });
-  private readonly metric = el("select");
-  private readonly geography = el("select");
+  readonly root = el("div", { class: "controls steps" });
+  private readonly metric = new Picker("ctl-pmetric", (v) => { this.emit({ metric: v }); }, true);
+  private readonly geography = new ChipGroup("ctl-pgeo", (v) => {
+    this.emit({ geography: v as MeasureSelection["geography"] });
+  });
 
   constructor(private readonly emit: (change: Partial<MeasureSelection>) => void) {
-    this.metric.addEventListener("change", () => { this.emit({ metric: this.metric.value }); });
-    this.geography.addEventListener("change", () => {
-      this.emit({ geography: this.geography.value as MeasureSelection["geography"] });
-    });
-    this.root.append(labeled("Show", this.metric, "ctl-pmetric"), labeled("Map by", this.geography, "ctl-pgeo"));
+    this.root.append(step(1, "Measure", "ctl-pmetric", this.metric.root), step(2, "Map by", "ctl-pgeo", this.geography.root));
   }
 
   /** Measures are listed under their group headings, in catalog order. */
   render(cat: MeasureCatalog, sel: MeasureSelection): void {
     const groups = [...new Set(cat.metrics.map((m) => m.group))];
-    this.metric.replaceChildren(
+    this.metric.select.replaceChildren(
       ...groups.map((group) =>
         el("optgroup", { label: group }, ...cat.metrics.filter((m) => m.group === group).map((m) => option(m.metric, m.label, m.metric === sel.metric))),
       ),
     );
-    this.geography.replaceChildren(...cat.geographies.map((g) => option(g.geography, g.label, g.geography === sel.geography)));
+    this.metric.sync(true);
+    this.geography.render(cat.geographies.map((g) => ({ value: g.geography, label: g.label })), sel.geography);
   }
 }
 
@@ -39,9 +40,10 @@ export function renderMeasureSidebar(
   summary: HTMLElement, notes: HTMLElement, exports: HTMLElement, stats: MeasureStats, cat: MeasureCatalog,
   measureOnly: HTMLElement,
 ): void {
+  // The measure's name is already the step 1 picker; the summary says what it counts.
   summary.replaceChildren(
-    el("h2", {}, stats.label),
-    el("p", { class: "small" }, `${stats.description} · ${stats.geography_label}`),
+    el("p", { class: "scope" }, stats.universe ? `${stats.geography_label}, ${stats.universe}` : stats.geography_label),
+    el("p", { class: "small" }, stats.description),
     el("p", { class: "small" }, sourceLine(stats, cat)),
   );
   notes.replaceChildren(el("h2", {}, "Notes"), el("ul", {}, ...stats.notes.concat(cat.notes.filter((n) => !stats.notes.includes(n))).map((n) => el("li", {}, n))));

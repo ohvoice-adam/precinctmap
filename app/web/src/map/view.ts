@@ -45,7 +45,7 @@ export class AreaMap {
       fitBoundsOptions: { padding: 24 },
       attributionControl: { compact: true },
     });
-    this.map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    this.map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
     this.map.on("error", (e) => {
       console.error("Map error:", e.error);
     });
@@ -55,6 +55,13 @@ export class AreaMap {
         resolve();
       });
     });
+  }
+
+  /** Keep the county clear of a panel covering the map's left `px` pixels (0 when none), and
+   * refit to the county. Call when the layout changes, not on every resize: it resets the view. */
+  setLeftInset(px: number): void {
+    this.map.setPadding({ top: 0, right: 0, bottom: 0, left: Math.max(0, px) });
+    this.map.fitBounds(initialView().bounds, { padding: 24, duration: 0 });
   }
 
   private addLayers(): void {

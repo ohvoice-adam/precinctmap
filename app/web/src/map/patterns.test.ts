@@ -37,11 +37,35 @@ describe("map patterns", () => {
 
   it("shows each pattern once in the council legend: hatch for low counts, dots for not in Columbus", () => {
     const target = document.createElement("section");
-    renderLegend(target, { kind: "sequential", title: "x", bins: [] }, "council_district", new Set());
+    renderLegend(target, { kind: "sequential", title: "x", bins: [] }, "council_district", new Map());
     const items = [...target.querySelectorAll(".legend-states li")];
     const style = (text: RegExp): string =>
       items.find((li) => text.test(li.textContent))?.querySelector(".swatch")?.getAttribute("style") ?? "";
-    expect(style(/votes \(hatched\)/)).toBe(`background:${patternBackground(hatchImage(), "#ffffff")}`);
+    expect(style(/votes \(hatched\)/)).toMatch(new RegExp(`^background:${escape(patternBackground(hatchImage(), "#ffffff"))}(;|$)`));
     expect(style(/Not in Columbus/)).toBe(`background:${patternBackground(dotsImage(), STATUS_COLORS.not_in_columbus)}`);
   });
+
+  it("counts areas per bin from the painted states, high bins first", () => {
+    const target = document.createElement("section");
+    const bins = [
+      { from: 0, to: 0.5, color: "#d3eee7", label: "0–50%" },
+      { from: 0.5, to: 1, color: "#0c4037", label: "50–100%" },
+    ];
+    const states = new Map([
+      ["a", { status: "value", bin: 1 }],
+      ["b", { status: "value", bin: 1 }],
+      ["c", { status: "low", bin: 0 }],
+      ["d", { status: "not_on_ballot", bin: -1 }],
+    ]);
+    renderLegend(target, { kind: "sequential", title: "Share", bins }, "precinct", states);
+    const rows = [...target.querySelectorAll(".legend-bins li")].map((li) => [li.querySelector(".r")?.textContent, li.querySelector(".c")?.textContent]);
+    expect(rows).toEqual([["50–100%", "2"], ["0–50%", "1"]]);
+    const states_ = [...target.querySelectorAll(".legend-states li")].map((li) => li.querySelector(".c")?.textContent);
+    expect(states_.slice(0, 2)).toEqual(["1", "1"]); // one hatched, one with nothing to map
+    expect(target.querySelector(".legend-unit")?.textContent).toBe("precincts");
+  });
 });
+
+function escape(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+}
