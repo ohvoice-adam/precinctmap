@@ -1,6 +1,8 @@
 /* Stage layout (map, table, or both side by side) and the sortable area table. */
 :root {
   --table-w: 480px;
+  /* Where content starts to the right of the floating sheet. */
+  --sheet-edge: calc(var(--sheet-w) + 2 * var(--gap));
 }
 
 .stage {
@@ -8,38 +10,38 @@
   flex-direction: column;
 }
 
+/* The view switch floats beside the sheet, over the map or the table. */
 .stage-bar {
-  display: flex;
-  align-items: center;
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid var(--hairline);
-  flex: none;
+  position: absolute;
+  z-index: 4;
+  top: var(--gap);
+  left: var(--sheet-edge);
 }
 
 .view-toggle {
   display: inline-flex;
-  border: 1px solid var(--hairline);
-  border-radius: 4px;
-  overflow: hidden;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border-radius: 999px;
+  box-shadow: var(--shadow-pill);
 }
 
 .view-toggle button {
   font: inherit;
-  font-size: 0.85rem;
-  padding: 0.3rem 0.8rem;
+  font-weight: 600;
+  font-size: 0.93rem;
+  padding: 5px 14px;
   border: none;
-  background: var(--surface);
+  border-radius: 999px;
+  background: none;
   color: var(--ink);
   cursor: pointer;
 }
 
-.view-toggle button + button {
-  border-left: 1px solid var(--hairline);
-}
-
 .view-toggle button[aria-pressed="true"] {
   background: var(--ink);
-  color: var(--surface);
+  color: #fff;
 }
 
 .stage-body {
@@ -60,6 +62,7 @@
   flex: none;
   min-width: 0;
   min-height: 0;
+  background: var(--surface);
   border-left: 1px solid var(--hairline);
   display: flex;
   flex-direction: column;
@@ -70,19 +73,20 @@
   display: none;
 }
 
+/* Table only: the table starts right of the sheet and below the view switch. */
 .stage[data-view="table"] .table-pane {
   width: auto;
   flex: 1;
-  border-left: none;
+  margin: calc(var(--gap) + 52px) var(--gap) var(--gap) var(--sheet-edge);
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-float);
+  overflow: hidden;
 }
 
 /* The detail panel floats over the map; keep it off the table when both are shown. */
 .stage[data-view="both"] .detail {
-  right: calc(var(--table-w) + 3.25rem);
-}
-
-.stage[data-view="table"] .detail {
-  right: 1rem;
+  right: calc(var(--table-w) + var(--gap));
 }
 
 .table-scroll {
@@ -166,11 +170,11 @@ table.areas tbody td {
 
 table.areas tbody tr:hover,
 table.areas tbody tr.selected {
-  background: #eef1f4;
+  background: var(--control);
 }
 
 table.areas tbody tr.selected th {
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--ink);
 }
 
 table.areas .area-link {
@@ -192,12 +196,33 @@ table.areas td.note {
   font-size: 0.78rem;
 }
 
-@media (max-width: 760px) {
-  .stage-bar {
-    padding: 0.35rem 16px;
+@media (pointer: coarse) {
+  .view-toggle button {
+    min-height: 44px;
+    padding: 6px 18px;
   }
 
-  .stage[data-view="table"] .detail {
-    right: 0.5rem;
+  /* The 44px target is the area name; the row adds no padding on top of it. */
+  table.areas .area-link {
+    min-height: 44px;
+  }
+
+  table.areas tbody th,
+  table.areas tbody td {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .stage-bar {
+    top: 8px;
+    left: 8px;
+  }
+
+  .stage[data-view="table"] .table-pane {
+    margin: 60px 0 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 }

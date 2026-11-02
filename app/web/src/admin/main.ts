@@ -1,6 +1,8 @@
 // Admin upload page: upload -> review report -> commit (enabled only for a ready report).
 // The page itself is served behind the admin login; the browser re-sends those credentials.
 
+import "@fontsource-variable/bricolage-grotesque/opsz.css";
+import "@fontsource-variable/instrument-sans/index.css";
 import "../styles.css";
 import "./admin.css";
 

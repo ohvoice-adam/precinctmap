@@ -13,7 +13,7 @@ export const STATUS_COLORS = {
 } as const;
 
 export const OUTLINE = "#ffffff";
-export const HOVER_OUTLINE = "#1f2933"; // interface ink: chrome, not a data color
+export const HOVER_OUTLINE = "#222222"; // interface ink: chrome, not a data color
 
 export function fillColor(binColors: string[]): ExpressionSpecification {
   const status: ExpressionSpecification = ["feature-state", "status"];
