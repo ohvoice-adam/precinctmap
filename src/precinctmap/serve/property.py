@@ -63,6 +63,11 @@ def _description(m: Metric | VoterMetric, election: str | None) -> str:
     return m.description
 
 
+def _universe(m: Metric | VoterMetric) -> str | None:
+    """What `n` counts when it isn't residential parcels (the client's default)."""
+    return getattr(m, "universe", None)
+
+
 def _voter_note(election: str | None) -> str:
     return f"{REGISTRATION_NOTE} Election used: {election or 'none loaded'}."
 
@@ -99,6 +104,7 @@ def property_catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
                 "kind": m.kind,
                 "description": _description(m, election),
                 "group": group_of(m.metric),
+                "universe": _universe(m),
             }
             for m in CATALOG
             if m.metric in shown  # voter measures only once an election has registration
@@ -142,6 +148,7 @@ def property_stats(con: duckdb.DuckDBPyConnection, metric: str, geography: str) 
         "label": m.label,
         "kind": m.kind,
         "description": _description(m, election),
+        "universe": _universe(m),
         "geography": geography,
         "geography_label": GEOGRAPHY_LABELS[geography],
         "boundary_set_id": rows[0][0],
@@ -188,6 +195,7 @@ def property_detail(con: duckdb.DuckDBPyConnection, geography: str, feature: str
                 "metric": m.metric,
                 "label": m.label,
                 "kind": m.kind,
+                "universe": _universe(m),
                 "value": rows[m.metric][0],
                 "n": rows[m.metric][1],
             }

@@ -53,6 +53,7 @@ export function renderLegend(
   geography: Geography,
   states: Map<string, AreaState>,
   dataset: "results" | "turnout" | "property" | "census" = "results",
+  base?: string, // property: what the hatch threshold counts, when not parcels
 ): void {
   const counts = new Map<number, number>();
   let low = 0;
@@ -66,7 +67,7 @@ export function renderLegend(
   const bins = scale.kind === "categorical" ? indexed.filter((b) => counts.has(b.i)) : indexed.reverse(); // high values on top
   const max = Math.max(0, ...counts.values(), low);
   const states_ = compact(
-    row(patternBackground(hatchImage(), "#ffffff"), LOW_TEXT[dataset], low, max, "", 24), // wide enough to show the hatch
+    row(patternBackground(hatchImage(), "#ffffff"), base && dataset === "property" ? `Fewer than ${LOW_PARCEL_THRESHOLD} ${base} (hatched)` : LOW_TEXT[dataset], low, max, "", 24), // wide enough to show the hatch
     row(STATUS_COLORS.not_on_ballot, EMPTY_TEXT[dataset], empty, max, "outlined", 12),
     geography === "council_district"
       ? row(patternBackground(dotsImage(), STATUS_COLORS.not_in_columbus), STATUS_TEXT.not_in_columbus, null, max)

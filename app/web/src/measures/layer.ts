@@ -31,7 +31,7 @@ export async function loadMeasure(dataset: Dataset, sel: MeasureSelection, asOf:
   for (const f of areas.features) {
     const id = f.properties.feature_id;
     const v = stats.features[id];
-    if (!v || v.value === null || v.n === 0) {
+    if (!v || v.value === null) { // a value can rest on 0 parcels (registered voters on campus)
       states.set(id, { status: "not_on_ballot", bin: -1 }); // white: nothing to measure here
       continue;
     }

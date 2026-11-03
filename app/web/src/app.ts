@@ -214,7 +214,7 @@ export class App {
     this.mstats = d.stats;
     this.table.render(measureTable(d.areas, d.stats));
     this.map.paint(d.scale.bins.map((b) => b.color), d.states);
-    renderLegend(this.legend, d.scale, msel.geography, d.states, cat.dataset);
+    renderLegend(this.legend, d.scale, msel.geography, d.states, cat.dataset, d.stats.universe ?? undefined);
     renderMeasureSidebar(this.summary, this.notes, this.exports, d.stats, cat, this.measureOnly());
   }
 

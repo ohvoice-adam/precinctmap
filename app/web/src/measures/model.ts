@@ -107,7 +107,8 @@ export function formatMoe(kind: MeasureKind, moe: number): string {
 
 /** What `n` counts, for tooltips and the table's count column. */
 export function baseLabel(stats: Pick<MeasureStats, "dataset" | "kind" | "universe">): string {
-  if (stats.dataset === "census") return stats.universe ?? "people";
+  if (stats.universe) return stats.universe; // e.g. "households", "registered voters"
+  if (stats.dataset === "census") return "people";
   if (stats.kind === "currency" || stats.kind === "currency_delta") return "homes with a value";
   return stats.kind === "score" ? "graded homes" : "residential parcels";
 }
@@ -119,11 +120,11 @@ export function isLow(stats: Pick<MeasureStats, "dataset">, v: MeasureValue): bo
 export function measureTooltip(name: string, stats: MeasureStats, featureId: string): string[] {
   const f = stats.features[featureId];
   const empty = stats.dataset === "census" ? "No estimate for this area" : "No residential parcels with this value";
-  if (!f || f.n === 0 || f.value === null) return [name, empty];
+  if (!f || f.value === null) return [name, empty];
   const moe = f.moe !== null && f.moe !== undefined ? ` ${formatMoe(stats.kind, f.moe)}` : "";
   const lines = [name, `${stats.label}: ${formatValue(stats.kind, f.value, stats.dataset)}${moe}`, `${num(f.n)} ${baseLabel(stats)}`];
   if (isLow(stats, f)) {
-    lines.push(stats.dataset === "census" ? "Large margin of error: read with care" : `Fewer than ${LOW_PARCEL_THRESHOLD} parcels: read with care`);
+    lines.push(stats.dataset === "census" ? "Large margin of error: read with care" : `Fewer than ${LOW_PARCEL_THRESHOLD} ${stats.universe ?? "parcels"}: read with care`);
   }
   return lines;
 }

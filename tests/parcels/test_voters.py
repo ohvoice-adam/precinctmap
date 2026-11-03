@@ -77,10 +77,10 @@ def _registered(con, fid):
 def test_voter_measures_divide_registration_by_land_and_units(voters):
     con = voters
     reg = _registered(con, "COLUMBUS 01-B")
-    assert _stat(con, "precinct", "COLUMBUS 01-B", "registered_voters") == (reg, 5)
-    assert _stat(con, "precinct", "COLUMBUS 01-B", "registered_voters_per_unit")[0] == (
-        pytest.approx(reg / 18)  # 18 estimated housing units (see test_parcels)
-    )
+    # counts and density rest on the voters themselves; per housing unit on the 5 parcels
+    assert _stat(con, "precinct", "COLUMBUS 01-B", "registered_voters") == (reg, round(reg))
+    per_unit, parcels = _stat(con, "precinct", "COLUMBUS 01-B", "registered_voters_per_unit")
+    assert (per_unit, parcels) == (pytest.approx(reg / 18), 5)  # 18 estimated housing units
     density = _stat(con, "precinct", "COLUMBUS 01-A", "registered_voters_per_sqmi")[0]
     assert density == pytest.approx(_registered(con, "COLUMBUS 01-A") / (CELL_SQMI / 2))
     county = con.execute(
@@ -123,4 +123,9 @@ def test_property_api_names_the_election(voters, settings):
         "/api/property", params={"metric": "registered_voters_per_sqmi", "geography": "ward"}
     ).json()
     assert r["kind"] == "density" and "November 4, 2025 general" in r["description"]
+    assert r["universe"] == "registered voters"
+    per_unit = c.get(
+        "/api/property", params={"metric": "registered_voters_per_unit", "geography": "ward"}
+    ).json()
+    assert per_unit["universe"] is None  # residential parcels, the client's default
     assert all("rental" not in n.lower() for n in r["notes"])

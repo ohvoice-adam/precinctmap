@@ -5,7 +5,9 @@ Registered voters come from the most recent election whose results file has regi
 nest, allocated by 2020 block population where they split). Density divides by each feature's
 own land area (area_land: polygon minus TIGER water). Per housing unit divides by the active
 parcel file's estimated housing units. `n` is the area's residential parcels, as for every
-property measure (areas under LOW_PARCEL_THRESHOLD are hatched).
+property measure, except that registered voters and density rest on the registered voters
+themselves (so areas with voters but no residential parcels, like the university campus, keep
+their value); areas under LOW_PARCEL_THRESHOLD of their `n` are hatched.
 
 Elections and parcels have separate dates: the boundary set must match per geography (a
 mismatch skips that geography and is logged in parcel_log), and the API names the election.
@@ -25,6 +27,7 @@ class VoterMetric:
     label: str
     kind: str  # 'count' | 'density' | 'ratio'
     description: str
+    universe: str | None = None  # what `n` counts; None = residential parcels
 
 
 REGISTRATION_NOTE = (
@@ -38,6 +41,7 @@ VOTER_METRICS: tuple[VoterMetric, ...] = (
         "Registered voters",
         "count",
         "Registered voters in the most recent election's results file.",
+        "registered voters",
     ),
     VoterMetric(
         "registered_voters_per_sqmi",
@@ -45,6 +49,7 @@ VOTER_METRICS: tuple[VoterMetric, ...] = (
         "density",
         "Registered voters per square mile of land: the area's own boundary minus lakes, ponds"
         " and rivers (Census TIGER area water).",
+        "registered voters",
     ),
     VoterMetric(
         "registered_voters_per_unit",
@@ -112,10 +117,11 @@ def _long(frame: pd.DataFrame, file_id: str, geo: str) -> pd.DataFrame:
     reg = frame["registered"]
     land = frame["land_sqmi"].where(frame["land_sqmi"] > 0)
     units = frame["units"].where(frame["units"] > 0)
-    values = {
-        "registered_voters": reg,
-        "registered_voters_per_sqmi": reg / land,
-        "registered_voters_per_unit": reg / units,
+    voters = reg.fillna(0).round()
+    values = {  # metric -> (value, n): n is what the value rests on (and what gets hatched)
+        "registered_voters": (reg, voters),
+        "registered_voters_per_sqmi": (reg / land, voters),
+        "registered_voters_per_unit": (reg / units, frame["n"]),  # n = residential parcels
     }
     return pd.concat(
         [
@@ -127,10 +133,10 @@ def _long(frame: pd.DataFrame, file_id: str, geo: str) -> pd.DataFrame:
                     "feature_id": frame["feature_id"],
                     "metric": metric,
                     "value": v.astype("float64"),
-                    "n": frame["n"].astype("int64"),
+                    "n": n.astype("int64"),
                 }
             )
-            for metric, v in values.items()
+            for metric, (v, n) in values.items()
         ],
         ignore_index=True,
     )
