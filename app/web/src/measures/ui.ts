@@ -62,7 +62,8 @@ function detailRows(d: MeasureDetail): HTMLTableRowElement[] {
     const moe = m.value !== null && m.moe !== null && m.moe !== undefined ? ` ${formatMoe(m.kind, m.moe)}` : "";
     const value = m.value === null ? "—" : `${formatValue(m.kind, m.value, d.dataset)}${moe}${m.reliable === false ? " †" : ""}`;
     return el("tr", {}, el("th", { scope: "row" }, m.label), el("td", { class: "num" }, value),
-      el("td", { class: "num", title: m.universe ?? undefined }, m.n.toLocaleString("en-US")));
+      el("td", { class: "num", title: m.universe ?? undefined },
+        d.dataset === "census" ? m.n.toLocaleString("en-US") : `${m.n.toLocaleString("en-US")} ${m.universe ?? "parcels"}`));
   });
 }
 
@@ -79,7 +80,7 @@ export function renderMeasureDetail(target: HTMLElement, d: MeasureDetail, onClo
       close,
       el("h2", {}, d.name),
       el("table", { class: "choices" },
-        el("thead", {}, el("tr", {}, el("th", {}, "Measure"), el("th", { class: "num" }, "Value"), el("th", { class: "num" }, census ? "Base" : "Parcels"))),
+        el("thead", {}, el("tr", {}, el("th", {}, "Measure"), el("th", { class: "num" }, "Value"), el("th", { class: "num" }, census ? "Base" : "Based on"))),
         el("tbody", {}, ...detailRows(d))),
       total ? el("p", { class: "small" }, "Construction grade: " + d.grades.map((g) => `${g.grade} ${((100 * g.parcels) / total).toFixed(0)}%`).join(" · ")) : null,
       el("p", { class: "source" }, footer),

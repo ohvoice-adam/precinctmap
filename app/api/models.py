@@ -79,7 +79,7 @@ class Catalog(BaseModel):
 
 class MeasureValue(BaseModel):
     value: float | None
-    n: int  # parcels (property) or the universe estimate (census) the value rests on
+    n: int  # what the value rests on: `universe` if set, else parcels (property)
     moe: float | None = None  # 90% margin of error (census)
     reliable: bool | None = None  # census: coefficient of variation <= 30%
 

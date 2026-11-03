@@ -73,14 +73,14 @@ export function resultsTable(
 function measureNote(stats: MeasureStats, has: boolean, low: boolean): string {
   if (!has) return stats.dataset === "census" ? "No estimate" : "No residential parcels with this value";
   if (!low) return "";
-  return stats.dataset === "census" ? "Large margin of error" : `Fewer than ${LOW_PARCEL_THRESHOLD} parcels`;
+  return stats.dataset === "census" ? "Large margin of error" : `Fewer than ${LOW_PARCEL_THRESHOLD} ${stats.universe ?? "parcels"}`;
 }
 
 export function measureTable(areas: AreaCollection, stats: MeasureStats): TableSpec {
   const rows = areas.features.map((f): TableRow => {
     const id = f.properties.feature_id;
     const v = stats.features[id];
-    const value = v !== undefined && v.n > 0 ? v.value : null;
+    const value = v !== undefined ? v.value : null;
     const moe = value !== null && v?.moe !== null && v?.moe !== undefined ? ` ${formatMoe(stats.kind, v.moe)}` : "";
     return {
       id,

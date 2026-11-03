@@ -79,6 +79,16 @@ describe("property tooltip", () => {
     expect(measureTooltip("P", stats, "B").at(-1)).toMatch(/^Fewer than 25 parcels/);
     expect(measureTooltip("P", stats, "C")).toEqual(["P", "No residential parcels with this value"]);
   });
+
+  it("keeps a value that rests on registered voters, not parcels (the campus)", () => {
+    const voters = {
+      dataset: "property", label: "Registered voters per square mile", kind: "density", universe: "registered voters",
+      features: { CAMPUS: { value: 41_200, n: 3_900 }, SMALL: { value: 900, n: 12 } },
+    } as unknown as MeasureStats;
+    expect(measureTooltip("COLUMBUS 41-F", voters, "CAMPUS")).toEqual(
+      ["COLUMBUS 41-F", "Registered voters per square mile: 41,200 per sq mi", "3,900 registered voters"]);
+    expect(measureTooltip("P", voters, "SMALL").at(-1)).toBe("Fewer than 25 registered voters: read with care");
+  });
 });
 
 describe("census measures", () => {
