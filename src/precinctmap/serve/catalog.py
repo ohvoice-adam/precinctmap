@@ -10,7 +10,7 @@ from typing import Any
 import duckdb
 
 from precinctmap.serve.census import census_catalog
-from precinctmap.serve.labels import GEOGRAPHY_LABELS
+from precinctmap.serve.labels import GEOGRAPHY_LABELS, GEOGRAPHY_ORDER
 from precinctmap.serve.property import property_catalog
 from precinctmap.serve.turnout import turnout_contest
 
@@ -45,16 +45,6 @@ _CHOICES = """
 SELECT contest_id, choice_id, name_display, party, choice_kind
 FROM choices ORDER BY contest_id, source_ordinal
 """
-
-GEOGRAPHY_ORDER = (
-    "precinct",
-    "council_district",
-    "municipality",
-    "ward",
-    "zcta",
-    "state_house",
-    "state_senate",
-)
 
 
 def _choices(con: duckdb.DuckDBPyConnection) -> dict[str, list[dict[str, Any]]]:

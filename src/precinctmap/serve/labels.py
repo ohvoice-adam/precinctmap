@@ -35,3 +35,23 @@ RETROACTIVE_STATE_DISTRICTS = (
     "Legislative districts are drawn on a different map than the one this election was held"
     " under; the closest available map is applied."
 )
+
+PARCEL_DISTRICT_NOTE = (
+    "Only the Franklin County part of each district is shown. Each parcel is placed in the"
+    " district that holds its point on the county auditor's map, using the legislative map in"
+    " effect on the parcel file's date."
+)
+CENSUS_DISTRICT_NOTE = (
+    "Only the Franklin County part of each district is shown. Each census block counts in the"
+    " district that holds its center point, using the legislative map in effect on the release's"
+    " placement date."
+)
+GEOGRAPHY_ORDER = (
+    "precinct",
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+)

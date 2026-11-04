@@ -24,7 +24,15 @@ from precinctmap.registry.config import BlocksSpec
 from precinctmap.registry.sources import dataset_uri
 from precinctmap.registry.store import STORE_CRS, BoundaryError, read_features, set_for
 
-GEOGRAPHIES = ("precinct", "council_district", "municipality", "ward", "zcta")
+GEOGRAPHIES = (
+    "precinct",
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+)
 ALAND_FIELD = "ALAND20"
 SQ_M_PER_SQ_MI = 2_589_988.110336
 

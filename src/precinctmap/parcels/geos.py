@@ -1,9 +1,11 @@
-"""Place parcels in municipalities/townships and ZIP code areas (point-in-polygon, nearest
-within MAX_NEAREST_FT as a fallback), using the boundary sets valid on the file's date.
+"""Place parcels in municipalities/townships, ZIP code areas and Ohio House/Senate districts
+(point-in-polygon, nearest within MAX_NEAREST_FT as a fallback), using the boundary sets valid
+on the file's date.
 
 Municipalities are built from precincts, so when the voter file moved a parcel into a precinct
 of another jurisdiction, the municipality follows that precinct (its majority municipality in
-the crosswalk) and the method is 'voter_address'."""
+the crosswalk) and the method is 'voter_address'. Legislative districts come from the point
+only: the voter file does not carry them."""
 
 from datetime import date
 
@@ -13,7 +15,8 @@ import pandas as pd
 from precinctmap.parcels.assign import MAX_NEAREST_FT, _locate, _points
 from precinctmap.registry.store import read_features, set_for
 
-OTHER_GEOGRAPHIES = ("municipality", "zcta")
+OTHER_GEOGRAPHIES = ("municipality", "zcta", "state_house", "state_senate")
+DISTRICT_GEOGRAPHIES = ("state_house", "state_senate")  # added after the first parcel loads
 
 
 def _follow_precinct(
@@ -49,12 +52,13 @@ def assign_other(
     county: str,
     as_of: date,
     assigned: pd.DataFrame | None = None,
+    geographies: tuple[str, ...] = OTHER_GEOGRAPHIES,
 ) -> tuple[pd.DataFrame, list[tuple[str | None, str, str]]]:
-    """pid-indexed <geo>_set_id, <geo>, <geo>_method for each geography in OTHER_GEOGRAPHIES."""
+    """pid-indexed <geo>_set_id, <geo>, <geo>_method for each of `geographies`."""
     pts = _points(parcels)
     out = pd.DataFrame(index=pd.Index(parcels["pid"], name="pid"))
     log: list[tuple[str | None, str, str]] = []
-    for geo in OTHER_GEOGRAPHIES:
+    for geo in geographies:
         ref = set_for(con, geo, county, as_of)  # type: ignore[arg-type]
         if ref is None:
             log.append((None, f"no_{geo}_set", f"no {geo} boundary set covers {as_of}"))

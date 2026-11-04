@@ -9,7 +9,14 @@ import duckdb
 from precinctmap.parcels.areas import assigned_sql
 from precinctmap.parcels.stats import METRICS, Metric
 from precinctmap.parcels.voters import REGISTRATION_NOTE, VOTER_IDS, VOTER_METRICS, VoterMetric
-from precinctmap.serve.labels import GEOGRAPHY_LABELS, NOT_IN_COLUMBUS, ZCTA_NOTE
+from precinctmap.serve.labels import (
+    GEOGRAPHY_LABELS,
+    GEOGRAPHY_ORDER,
+    NOT_IN_COLUMBUS,
+    PARCEL_DISTRICT_NOTE,
+    STATE_DISTRICTS,
+    ZCTA_NOTE,
+)
 from precinctmap.serve.results import NotFoundError
 
 UNIVERSE = (
@@ -90,7 +97,7 @@ def property_catalog(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
             "SELECT DISTINCT geography FROM parcel_stats WHERE file_id = ?", [file_id]
         ).fetchall()
     ]
-    order = ["precinct", "council_district", "municipality", "ward", "zcta"]
+    order = list(GEOGRAPHY_ORDER)
     return {
         "dataset": "property",
         "label": f"Residential property (auditor, {as_of.isoformat()})",
@@ -142,6 +149,8 @@ def property_stats(con: duckdb.DuckDBPyConnection, metric: str, geography: str) 
         notes.append(NOT_IN_COLUMBUS)
     if geography == "zcta":
         notes.append(ZCTA_NOTE)
+    if geography in STATE_DISTRICTS:
+        notes.append(PARCEL_DISTRICT_NOTE)
     return {
         "dataset": "property",
         "metric": m.metric,

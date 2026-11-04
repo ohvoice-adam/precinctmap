@@ -11,6 +11,7 @@ from precinctmap.census.load import commit_release, fetch_release, release_dir, 
 from precinctmap.census.summary_file import read_table
 from precinctmap.census.tables import INCOME_EDGES, INCOME_TOP
 from precinctmap.ingest.errors import UnknownLayoutError
+from precinctmap.serve.labels import CENSUS_DISTRICT_NOTE
 from tests.fixtures.census import BG_A, YEAR, write_national_tables
 
 AS_OF = date(2026, 10, 21)
@@ -76,7 +77,16 @@ def test_population_follows_blocks_into_every_geography(review):
     totals = s[s.metric == "population"].groupby("geography")["value"].sum().round(6).to_dict()
     assert totals["precinct"] == totals["municipality"] == totals["ward"] == 400
     assert totals["council_district"] == 200  # Columbus blocks only
+    assert totals["state_house"] == totals["state_senate"] == 400  # every block is in a district
     assert all(units == county for _, units, county in review.county_checks)
+
+
+def test_blocks_count_in_the_state_district_holding_their_center_point(review):
+    # House 001 = x 0-2500 (blocks 1-4, center 2450 for block 4); 002 = x 2500-5000
+    assert stat(review, "state_house", "001", "population").value == pytest.approx(290)
+    assert stat(review, "state_house", "002", "population").value == pytest.approx(110)
+    assert stat(review, "state_senate", "003", "population").value == pytest.approx(300)
+    assert stat(review, "state_senate", "004", "population").value == pytest.approx(100)
 
 
 def test_share_and_its_margin_of_error(review):
@@ -153,6 +163,11 @@ def test_census_api(fetched, review, settings):
     )
     assert {m["group"] for m in cat["metrics"]} >= {"Education", "Immigration", "Urbanism"}
     r = c.get("/api/census", params={"metric": "bachelors_share", "geography": "precinct"}).json()
+    geos = [g["geography"] for g in cat["geographies"]]
+    assert geos[-2:] == ["state_house", "state_senate"]
+    d = c.get("/api/census", params={"metric": "population", "geography": "state_house"}).json()
+    assert CENSUS_DISTRICT_NOTE in d["notes"]
+    assert d["features"]["001"]["value"] == pytest.approx(290)
     assert r["features"]["COLUMBUS 01-A"] == {
         "value": 0.5,
         "n": 60,

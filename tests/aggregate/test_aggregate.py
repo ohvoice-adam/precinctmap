@@ -75,6 +75,8 @@ def test_precinct_geography_is_identity(aggregated):
         "council_district",
         "municipality",
         "ward",
+        "state_house",
+        "state_senate",
     }  # no ZCTA set in the mini-county registry
     assert all(s.failures == 0 for s in summaries)
 
