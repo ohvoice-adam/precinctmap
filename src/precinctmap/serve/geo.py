@@ -17,13 +17,25 @@ from precinctmap.serve.labels import (
     GEOGRAPHY_LABELS,
     RETROACTIVE_COUNCIL,
     RETROACTIVE_PRECINCTS,
+    RETROACTIVE_STATE_DISTRICTS,
+    STATE_DISTRICT_NOTE,
+    STATE_DISTRICTS,
     ZCTA_NOTE,
 )
 
 SERVE_CRS = 4326
 SIMPLIFY_DEGREES = 0.00003  # ~3 m; small enough that shared edges show no visible gaps
 GRID_DEGREES = 1e-6  # ~0.1 m coordinate rounding
-SERVABLE = ("precinct", "council_district", "municipality", "ward", "zcta", "county")
+SERVABLE = (
+    "precinct",
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+    "county",
+)
 
 _CACHE: dict[tuple[str, str, bool], tuple[str, bytes]] = {}
 
@@ -40,6 +52,10 @@ def _notes(geography: str, retroactive: bool) -> list[str]:
         notes.append(RETROACTIVE_COUNCIL)
     if geography == "zcta":
         notes.append(ZCTA_NOTE)
+    if geography in STATE_DISTRICTS:
+        notes.append(STATE_DISTRICT_NOTE)
+        if retroactive:
+            notes.append(RETROACTIVE_STATE_DISTRICTS)
     return notes
 
 

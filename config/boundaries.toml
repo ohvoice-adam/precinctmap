@@ -137,3 +137,89 @@ name_template = "ZIP {ZCTA5CE20}"
 clip_to_county = true
 valid_from = 2000-01-01
 notes = "Census ZCTA5 (2020 definitions, TIGER 2026), clipped to the Franklin County portion."
+
+# --- Ohio legislative districts (Franklin County portion; TIGER state legislative units) ---
+# Three Ohio maps: 2011 (to 2022), 2022 (Aug 2022 - 2023), 2024 on. Windows are election dates.
+# Districts reach outside the county, so each is clipped to Franklin and shown as that portion.
+
+[[sets]]
+id = "ohio-house-2011"
+geography = "state_house"
+source = "boundaries/tiger_dl/tl_2020_39_sldl.zip"
+where = "SLDLST <> 'ZZZ'"
+id_field = "SLDLST"
+name_template = "House District {SLDLST}"
+clip_to_county = true
+min_area_sqmi = 0.05  # drops slivers where district edges meet the county outline
+valid_from = 2000-01-01
+valid_to = 2022-08-02
+native_from = 2012-01-01
+notes = "Ohio 2011 map (TIGER 2020), in use for the 2012-2020 elections; earlier elections use it retroactively."
+
+[[sets]]
+id = "ohio-house-2022"
+geography = "state_house"
+source = "boundaries/tiger_dl/tl_2022_39_sldl.zip"
+where = "SLDLST <> 'ZZZ'"
+id_field = "SLDLST"
+name_template = "House District {SLDLST}"
+clip_to_county = true
+min_area_sqmi = 0.05  # drops slivers where district edges meet the county outline
+valid_from = 2022-08-02
+valid_to = 2024-03-19
+native_from = 2022-08-02
+notes = "Ohio 2022 map (TIGER 2022), first used in the August 2022 primary."
+
+[[sets]]
+id = "ohio-house-2024"
+geography = "state_house"
+source = "boundaries/tiger_dl/tl_2026_39_sldl.zip"
+where = "SLDLST <> 'ZZZ'"
+id_field = "SLDLST"
+name_template = "House District {SLDLST}"
+clip_to_county = true
+min_area_sqmi = 0.05  # drops slivers where district edges meet the county outline
+valid_from = 2024-03-19
+native_from = 2024-03-19
+notes = "Ohio map adopted September 2023 (TIGER 2026), first used in the March 2024 primary."
+
+[[sets]]
+id = "ohio-senate-2011"
+geography = "state_senate"
+source = "boundaries/tiger_dl/tl_2020_39_sldu.zip"
+where = "SLDUST <> 'ZZZ'"
+id_field = "SLDUST"
+name_template = "Senate District {SLDUST}"
+clip_to_county = true
+min_area_sqmi = 0.05  # drops slivers where district edges meet the county outline
+valid_from = 2000-01-01
+valid_to = 2022-08-02
+native_from = 2012-01-01
+notes = "Ohio 2011 map (TIGER 2020), in use for the 2012-2020 elections; earlier elections use it retroactively."
+
+[[sets]]
+id = "ohio-senate-2022"
+geography = "state_senate"
+source = "boundaries/tiger_dl/tl_2022_39_sldu.zip"
+where = "SLDUST <> 'ZZZ'"
+id_field = "SLDUST"
+name_template = "Senate District {SLDUST}"
+clip_to_county = true
+min_area_sqmi = 0.05  # drops slivers where district edges meet the county outline
+valid_from = 2022-08-02
+valid_to = 2024-03-19
+native_from = 2022-08-02
+notes = "Ohio 2022 map (TIGER 2022), first used in the August 2022 primary."
+
+[[sets]]
+id = "ohio-senate-2024"
+geography = "state_senate"
+source = "boundaries/tiger_dl/tl_2026_39_sldu.zip"
+where = "SLDUST <> 'ZZZ'"
+id_field = "SLDUST"
+name_template = "Senate District {SLDUST}"
+clip_to_county = true
+min_area_sqmi = 0.05  # drops slivers where district edges meet the county outline
+valid_from = 2024-03-19
+native_from = 2024-03-19
+notes = "Ohio map adopted September 2023 (TIGER 2026), first used in the March 2024 primary."

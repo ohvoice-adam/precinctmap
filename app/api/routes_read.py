@@ -18,7 +18,11 @@ router = APIRouter(prefix="/api")
 Election = Annotated[str, Query(description="Election id, e.g. franklin-2024-11-05-general")]
 Contest = Annotated[str, Query(description="Contest id from /api/catalog")]
 Geography = Annotated[
-    str, Query(description="precinct | council_district | municipality | ward | zcta")
+    str,
+    Query(
+        description="precinct | council_district | municipality | ward | zcta"
+        " | state_house | state_senate"
+    ),
 ]
 
 

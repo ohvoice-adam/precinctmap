@@ -59,12 +59,12 @@ DATASETS: tuple[Dataset, ...] = (
     ),
     Dataset(
         "tiger",
-        "Census geography: county outline, places, townships, ZIP areas (ZCTA), 2020 blocks,"
-        " area water",
+        "Census geography: county outline, places, townships, ZIP areas (ZCTA), Ohio House and"
+        " Senate districts, 2020 blocks, area water",
         ("boundary_sets", "features", "census_blocks", "area_land"),
         "U.S. Census Bureau, TIGER/Line shapefiles",
         "https://www2.census.gov/geo/tiger/ (TIGER<year>/COUNTY, PLACE, COUSUB, ZCTA520, "
-        "AREAWATER; TIGER2020/TABBLOCK20 for blocks)",
+        "SLDL, SLDU, AREAWATER; TIGER2020/TABBLOCK20 for blocks)",
         "Yearly (late summer); 2020 blocks and ZCTA definitions change only with the next census.",
         "Download into data/boundaries/, point config/boundaries.toml at it, `boundaries load "
         "--replace <set>`.",

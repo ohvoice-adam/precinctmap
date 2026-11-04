@@ -10,6 +10,8 @@ from precinctmap.ingest.normalize import precinct_name
 from precinctmap.registry.config import SetSpec
 from precinctmap.registry.store import STORE_CRS, BoundaryError, Repair
 
+SQ_FT_PER_SQ_MI = 27_878_400  # US survey feet, close enough for a sliver cutoff
+
 
 def dataset_uri(path: Path) -> str:
     if not path.exists():
@@ -90,9 +92,12 @@ def _clip(
 ) -> gpd.GeoDataFrame:
     clipped = [polygonal(g) for g in shapely.intersection(gdf.geometry.values, county_geom)]
     gdf = gdf.set_geometry(gpd.GeoSeries(clipped, index=gdf.index, crs=STORE_CRS))
-    keep = ~gdf.geometry.is_empty & (gdf.to_crs(3735).area > 1.0)  # > 1 sq ft
+    min_sqft = (spec.min_area_sqmi or 0.0) * SQ_FT_PER_SQ_MI
+    keep = ~gdf.geometry.is_empty & (gdf.to_crs(3735).area > max(1.0, min_sqft))  # > 1 sq ft
     for fid in gdf.loc[~keep, "feature_id"]:
-        repairs.append(Repair(str(fid), "outside or touching county only", "dropped by clip"))
+        repairs.append(
+            Repair(str(fid), "outside, touching, or a sliver of the county only", "dropped by clip")
+        )
     if not keep.any():
         raise BoundaryError(f"{spec.id}: nothing left after clipping to the county")
     return gdf.loc[keep].reset_index(drop=True)

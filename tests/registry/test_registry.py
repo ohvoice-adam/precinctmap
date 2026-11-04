@@ -31,6 +31,8 @@ def test_real_registry_config_parses():
         "council_district",
         "ward",
         "zcta",
+        "state_house",
+        "state_senate",
     }
     retro = next(s for s in cfg.sets if s.id.endswith("precincts-2025-07-retro"))
     assert retro.valid_to == date(2025, 7, 30) and retro.merge["HAMILTON-A"] == [
