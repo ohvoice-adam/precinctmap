@@ -55,6 +55,20 @@ def write_mini_county(data_dir: Path) -> None:
         [{"DISTRICT": 1, "geometry": cell(0, 1400)}, {"DISTRICT": 2, "geometry": cell(1400, 2000)}],
         driver="GeoJSON",
     )
+    _write(  # House: 1 = x 0-2500 (splits BLENDON-A 2000-3000), 2 = x 2500-5000
+        b / "state_house.shp",
+        [
+            {"SLDLST": "001", "geometry": cell(0, 2500)},
+            {"SLDLST": "002", "geometry": cell(2500, 5000)},
+        ],
+    )
+    _write(  # Senate: 3 = x 0-3000 (nests Columbus + Blendon), 4 = x 3000-5000
+        b / "state_senate.shp",
+        [
+            {"SLDUST": "003", "geometry": cell(0, 3000)},
+            {"SLDUST": "004", "geometry": cell(3000, 5000)},
+        ],
+    )
     _write(
         b / "places.shp",
         [
@@ -184,4 +198,20 @@ id_field = "DISTRICT"
 name_template = "District {DISTRICT}"
 jurisdiction = "COLUMBUS"
 valid_from = 2023-01-01
+
+[[sets]]
+id = "state-house"
+geography = "state_house"
+source = "boundaries/state_house.shp"
+id_field = "SLDLST"
+name_template = "House District {SLDLST}"
+valid_from = 2000-01-01
+
+[[sets]]
+id = "state-senate"
+geography = "state_senate"
+source = "boundaries/state_senate.shp"
+id_field = "SLDUST"
+name_template = "Senate District {SLDUST}"
+valid_from = 2000-01-01
 """

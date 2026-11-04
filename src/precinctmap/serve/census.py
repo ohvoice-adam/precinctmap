@@ -7,7 +7,14 @@ from typing import Any
 import duckdb
 
 from precinctmap.census.tables import BY_ID, MEASURES, level_of
-from precinctmap.serve.labels import GEOGRAPHY_LABELS, NOT_IN_COLUMBUS, ZCTA_NOTE
+from precinctmap.serve.labels import (
+    CENSUS_DISTRICT_NOTE,
+    GEOGRAPHY_LABELS,
+    GEOGRAPHY_ORDER,
+    NOT_IN_COLUMBUS,
+    STATE_DISTRICTS,
+    ZCTA_NOTE,
+)
 from precinctmap.serve.results import NotFoundError
 
 ACS_NOTE = (
@@ -25,7 +32,7 @@ TRACT_NOTE = (
     "smoothed across each tract."
 )
 COUNCIL_NOTE = "Council districts count only blocks in Columbus precincts."
-ORDER = ["precinct", "council_district", "municipality", "ward", "zcta"]
+ORDER = list(GEOGRAPHY_ORDER)
 
 
 def _active(con: duckdb.DuckDBPyConnection) -> tuple[str, str, Any] | None:
@@ -89,6 +96,8 @@ def _notes(metric: str, geography: str) -> list[str]:
         notes += [NOT_IN_COLUMBUS, COUNCIL_NOTE]
     if geography == "zcta":
         notes.append(ZCTA_NOTE)
+    if geography in STATE_DISTRICTS:
+        notes.append(CENSUS_DISTRICT_NOTE)
     return notes
 
 

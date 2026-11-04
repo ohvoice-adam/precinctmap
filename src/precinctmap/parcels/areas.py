@@ -6,8 +6,18 @@ GEOGRAPHY_COLUMNS = {
     "council_district": ("council_set_id", "council_district"),
     "municipality": ("municipality_set_id", "municipality"),
     "zcta": ("zcta_set_id", "zcta"),
+    "state_house": ("state_house_set_id", "state_house"),
+    "state_senate": ("state_senate_set_id", "state_senate"),
 }
-GEOGRAPHIES = ("precinct", "council_district", "municipality", "ward", "zcta")
+GEOGRAPHIES = (
+    "precinct",
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+)
 
 # A parcel's ward is its precinct's ward: the exact precinct -> ward crosswalk of the ward set
 # derived from the parcel's precinct set (so a ward can never disagree with the precinct).

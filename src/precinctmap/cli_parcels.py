@@ -10,6 +10,7 @@ import typer
 from precinctmap.config import load_settings
 from precinctmap.ingest.errors import StagingError
 from precinctmap.io.db import get_connection
+from precinctmap.parcels.backfill import backfill_districts
 from precinctmap.parcels.ingest import commit_parcels, load_addresses, stage_parcels, staging_dir
 from precinctmap.parcels.report import render
 from precinctmap.parcels.stats import materialize_stats
@@ -120,3 +121,19 @@ def parcels_status() -> None:
         ),
     ):
         typer.echo(f"  {geo}: " + ", ".join(f"{m} {n:,}" for m, n in con.execute(rows).fetchall()))
+
+
+@parcels_app.command("backfill-districts")
+def parcels_backfill_districts() -> None:
+    """Place already-loaded parcels in Ohio House/Senate districts, then rebuild statistics.
+
+    Uses the auditor points stored with each parcel and the district maps valid on its
+    as-of date; no source file is needed. Safe to rerun.
+    """
+    settings = load_settings()
+    con = get_connection(settings.db_path)
+    for r in backfill_districts(con, settings.county):
+        placed = ", ".join(f"{g}: {n:,}" for g, n in r.placed.items())
+        typer.echo(
+            f"{r.filename}: {r.parcels:,} parcels; placed {placed}; {r.stat_rows:,} statistics"
+        )
