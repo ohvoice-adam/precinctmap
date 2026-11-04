@@ -6,17 +6,28 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
-Geography = Literal["precinct", "council_district", "municipality", "ward", "zcta", "county"]
+Geography = Literal[
+    "precinct",
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+    "county",
+]
 GEOGRAPHIES: tuple[Geography, ...] = (
     "precinct",
     "council_district",
     "municipality",
     "ward",
     "zcta",
+    "state_house",
+    "state_senate",
     "county",
 )
 DEFAULT_CONFIG = Path("config/boundaries.toml")
-LATER_FIELDS = frozenset({"code_field"})  # added 2026-10-21
+LATER_FIELDS = frozenset({"code_field", "min_area_sqmi"})  # added 2026-10-21, 2026-11-04
 
 
 class RegistryConfigError(ValueError):
@@ -40,6 +51,7 @@ class SetSpec:
     name_template: str | None = None
     jurisdiction: str | None = None
     clip_to_county: bool = False
+    min_area_sqmi: float | None = None  # after clipping, drop pieces smaller than this (slivers)
     derive: str | None = None  # 'merge_precincts' | 'precinct_jurisdictions' | 'precinct_wards'
     derived_from: str | None = None
     merge: dict[str, list[str]] = field(default_factory=dict)

@@ -18,6 +18,9 @@ from precinctmap.serve.labels import (
     NOT_IN_COLUMBUS,
     RETROACTIVE_COUNCIL,
     RETROACTIVE_PRECINCTS,
+    RETROACTIVE_STATE_DISTRICTS,
+    STATE_DISTRICT_NOTE,
+    STATE_DISTRICTS,
     ZCTA_NOTE,
 )
 from precinctmap.serve.results import NotFoundError, geo_set
@@ -128,6 +131,10 @@ def _notes(geography: str, retro: bool, excluded: float) -> list[str]:
         notes.append(f"{NOT_IN_COLUMBUS} {excluded:,.0f} ballots are not shown.")
     if geography == "zcta":
         notes.append(ZCTA_NOTE)
+    if geography in STATE_DISTRICTS:
+        notes.append(STATE_DISTRICT_NOTE)
+        if retro:
+            notes.append(RETROACTIVE_STATE_DISTRICTS)
     return notes
 
 

@@ -11,7 +11,14 @@ from precinctmap.registry.crosswalk import CrosswalkSummary, compute_crosswalk
 
 log = logging.getLogger(__name__)
 
-TARGET_GEOGRAPHIES = ("council_district", "municipality", "ward", "zcta")
+TARGET_GEOGRAPHIES = (
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+)
 _CROSSWALK_COLS = [
     "precinct_set_id",
     "target_set_id",

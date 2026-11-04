@@ -28,6 +28,8 @@ const AREA_NOUN: Record<Geography, string> = {
   council_district: "districts",
   municipality: "areas",
   zcta: "ZIP code areas",
+  state_house: "districts",
+  state_senate: "districts",
 };
 
 /** One legend row. `count` draws a bar (length relative to `max`) and the area count beside it;

@@ -2,7 +2,14 @@
 
 import type { MeasureCatalog } from "./measures/model";
 
-export type Geography = "precinct" | "council_district" | "municipality" | "ward" | "zcta";
+export type Geography =
+  | "precinct"
+  | "council_district"
+  | "municipality"
+  | "ward"
+  | "zcta"
+  | "state_house"
+  | "state_senate";
 export type ChoiceKind =
   | "candidate"
   | "yes"

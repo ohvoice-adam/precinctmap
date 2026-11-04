@@ -14,7 +14,15 @@ from precinctmap.registry.store import BoundaryError, set_for
 
 log = logging.getLogger(__name__)
 
-GEOGRAPHIES = ("precinct", "council_district", "municipality", "ward", "zcta")
+GEOGRAPHIES = (
+    "precinct",
+    "council_district",
+    "municipality",
+    "ward",
+    "zcta",
+    "state_house",
+    "state_senate",
+)
 
 # A CTE named xw: precinct_name, feature_id, split_share, method, weight_basis.
 _XW_IDENTITY = """xw AS (
