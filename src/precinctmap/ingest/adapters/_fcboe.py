@@ -2,7 +2,7 @@
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from precinctmap.ingest.errors import LayoutError
 from precinctmap.ingest.fcboe_common import (
@@ -14,6 +14,7 @@ from precinctmap.ingest.fcboe_common import (
     contest_runs,
     county_name,
     emit_results,
+    loc,
     read_headers,
     total_row_index,
 )
@@ -25,6 +26,7 @@ _COUNTY_ROW_NAME = re.compile(r"[A-Z][a-z]+(?: [A-Z][a-z]+)*(?: County)?")
 
 #: Returns a PrecinctRow for a real precinct, or the county name for an out-of-county pseudo-row.
 RowClassifier = Callable[[Grid, int, NormalizationLog], PrecinctRow | str]
+ContestNameFix = Callable[[str, str, NormalizationLog], str]
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,8 @@ class LayoutRules:
     classify_row: RowClassifier
     presence: PresencePolicy
     has_over_under: bool
+    #: Optional display fix for a contest name (name, location, log) -> name; the raw name stays.
+    contest_name: ContestNameFix | None = None
 
 
 def first_row(grid: Grid) -> list[str]:
@@ -58,7 +62,8 @@ def parse_with(rules: LayoutRules, grid: Grid) -> ParsedFile:
     county = county_name(grid, total_idx)
     meta = rules.meta_columns(headers)
     start = 3 + len(meta)
-    contests = [build_contest(i, run, log) for i, run in enumerate(contest_runs(headers[start:]))]
+    contest_headers = _fix_contest_names(rules, headers[start:], log)
+    contests = [build_contest(i, run, log) for i, run in enumerate(contest_runs(contest_headers))]
     real, pseudo = _classify_rows(rules, grid, total_idx, log)
     keyed = [(r, p.name) for r, p in real]
     results, absent = emit_results(grid, keyed, contests, rules.presence)
@@ -82,6 +87,24 @@ def parse_with(rules: LayoutRules, grid: Grid) -> ParsedFile:
         has_over_under=rules.has_over_under,
         normalizations=log,
     )
+
+
+def _fix_contest_names(
+    rules: LayoutRules, headers: list[Header], log: NormalizationLog
+) -> list[Header]:
+    """Apply the layout's contest-name fix once per distinct name; distinct names stay distinct."""
+    if rules.contest_name is None:
+        return headers
+    fixed: dict[str, str] = {}
+    sources: dict[str, str] = {}
+    for h in headers:
+        if h.h1 in fixed:
+            continue
+        fixed[h.h1] = rules.contest_name(h.h1, f"contest {loc(0, h.column)}", log)
+        other = sources.setdefault(fixed[h.h1], h.h1)
+        if other != h.h1:
+            raise LayoutError(f"contests {other!r} and {h.h1!r} both become {fixed[h.h1]!r}")
+    return [replace(h, h1=fixed[h.h1]) for h in headers]
 
 
 def _classify_rows(
