@@ -17,6 +17,7 @@ from precinctmap.ingest.adapters._fcboe import (
     parse_with,
     pseudo_county,
 )
+from precinctmap.ingest.adapters._group_rows import has_group_rows
 from precinctmap.ingest.errors import LayoutError
 from precinctmap.ingest.fcboe_common import (
     KNOWN_PARTIES,
@@ -46,6 +47,7 @@ def detect(grid: Grid) -> bool:
         and "BALLOTS CAST TOTAL" in row1
         and len(grid) > 2
         and cell_str(grid[2][3]).strip() == "VOTERS"
+        and not has_group_rows(grid)  # 2023 layout
     )
 
 

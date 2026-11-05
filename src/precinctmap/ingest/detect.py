@@ -14,6 +14,7 @@ from precinctmap.ingest.adapters import (
     fcboe_general_2016,
     fcboe_general_2020,
     fcboe_sheets_2016,
+    fcboe_wide_2023,
     fcboe_wide_2024,
     fcboe_wide_2025,
 )
@@ -41,7 +42,13 @@ class WorkbookAdapter:
 
 ADAPTERS: tuple[Adapter, ...] = tuple(
     Adapter(m.NAME, m.VERSION, m.detect, m.parse)
-    for m in (fcboe_classic_2020, fcboe_general_2020, fcboe_wide_2024, fcboe_wide_2025)
+    for m in (
+        fcboe_classic_2020,
+        fcboe_general_2020,
+        fcboe_wide_2023,
+        fcboe_wide_2024,
+        fcboe_wide_2025,
+    )
 )
 WORKBOOK_ADAPTERS: tuple[WorkbookAdapter, ...] = tuple(
     WorkbookAdapter(m.NAME, m.VERSION, m.detect, m.parse)
