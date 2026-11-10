@@ -165,7 +165,7 @@ docker compose run --rm precinctmap precinctmap parcels review data/samples/Parc
 docker compose run --rm precinctmap precinctmap parcels commit <prc-id> --replace
 ```
 
-From the voter file, only addresses, precincts and council districts are kept.
+From the voter file, only street addresses, precincts and council districts are kept (no names, IDs, birth dates or party). A data release includes that address table and one row per parcel, both built from public records. Ohio law treats the voter registration database as a public record, and the voter file and the Auditor's parcel file state no redistribution terms. `DATA.md` in each release lists the source and stated terms for every dataset. If a source turns out to restrict redistribution, that table comes out of future releases.
 
 ### Census data
 
