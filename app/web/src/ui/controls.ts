@@ -1,7 +1,7 @@
 // Selection controls. Each lists only options that have data (the catalog only holds those).
 
-import type { Change, Metric, Selection } from "../state";
-import { METRIC_LABELS, contenders, findContest, findElection, metricsFor, usesChoice } from "../state";
+import type { Change, Metric, ScaleMode, Selection } from "../state";
+import { METRIC_LABELS, canFit, contenders, findContest, findElection, metricsFor, usesChoice } from "../state";
 import type { Catalog, CatalogContest, Geography } from "../types";
 import { el, option } from "./dom";
 import { ChipGroup, Picker, step } from "./steps";
@@ -38,6 +38,9 @@ export class Controls {
   private readonly choice = new Picker("ctl-choice", (v) => { this.emit({ choice: v }); });
   private readonly choiceLabel = el("label", { class: "sub-label", for: "ctl-choice" }, "Candidate");
   private readonly choiceField = el("div", { class: "subfield" }, this.choiceLabel, this.choice.root);
+  private readonly scale = new ChipGroup("ctl-scale", (v) => { this.emit({ scale: v as ScaleMode }); }, true);
+  private readonly scaleField = el("div", { class: "subfield" },
+    el("span", { class: "sub-label", id: "ctl-scale-label" }, "Color scale"), this.scale.root);
   private readonly geography = new ChipGroup("ctl-geography", (v) => { this.emit({ geography: v as Geography }); });
   private last: { catalog: Catalog; sel: Selection } | null = null;
 
@@ -50,7 +53,7 @@ export class Controls {
       step(1, "Year", "ctl-year", this.year.root),
       step(2, "Election", "ctl-election", this.election.root),
       step(3, "Contest", "ctl-contest", this.contest.root, this.search),
-      step(4, "What to map", "ctl-metric", this.metric.root, this.choiceField),
+      step(4, "What to map", "ctl-metric", this.metric.root, this.choiceField, this.scaleField),
       step(5, "Map by", "ctl-geography", this.geography.root),
     );
   }
@@ -77,6 +80,11 @@ export class Controls {
         option(c.choice_id, c.party && !turnout ? `${c.name} (${c.party})` : c.name, c.choice_id === sel.choice)),
     );
     this.choice.sync();
+    // Fixed bins run 0-100% for every candidate; fitted bins follow this one's own spread, so a
+    // minor candidate's geography shows. Offered wherever a single candidate or party is mapped.
+    this.scaleField.hidden = !canFit(sel.metric);
+    const what = turnout ? "party ballot" : "candidate";
+    this.scale.render([{ value: "fixed", label: "Fixed bins" }, { value: "relative", label: `Fit to this ${what}` }], sel.scale);
     this.geography.render(election.geographies.map((g) => ({ value: g.geography, label: g.label })), sel.geography);
   }
 

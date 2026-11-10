@@ -2,6 +2,7 @@
 // purple <-> orange around a gray midpoint, leaders use orange / aqua / violet + gray.
 // Validated with the dataviz palette validator; results in project-docs/palette.md.
 
+import { fitBins } from "./fit";
 import type { MetricContext } from "./metrics";
 import type { Results } from "./types";
 
@@ -76,7 +77,30 @@ function leaderBins(ctx: MetricContext, results: Results): Bin[] {
   return out;
 }
 
-export function scaleFor(ctx: MetricContext, results: Results): Scale {
+/** Bins fitted to the selected item's own values (see fit.ts), for the metrics about one
+ * candidate or party ballot. Null when the metric has no fitted form or there is nothing to fit. */
+function fittedBins(ctx: MetricContext, fit: number[]): Bin[] | null {
+  switch (ctx.metric) {
+    case "share":
+    case "party_share":
+    case "party_turnout":
+      return fitBins(fit, SEQUENTIAL, "percent");
+    case "party_ballots":
+      return fitBins(fit, SEQUENTIAL, "count");
+    default:
+      return null;
+  }
+}
+
+/** `fit`: the selected item's value in every area that has one, when the user chose the
+ * relative scale; otherwise null and the metric's fixed bins apply. */
+export function scaleFor(ctx: MetricContext, results: Results, fit: number[] | null = null): Scale {
+  const fixed = baseScale(ctx, results);
+  const fitted = fit ? fittedBins(ctx, fit) : null;
+  return fitted ? { ...fixed, title: `${fixed.title} (scale fitted to this ${ctx.metric === "share" ? "candidate" : "party ballot"})`, bins: fitted } : fixed;
+}
+
+function baseScale(ctx: MetricContext, results: Results): Scale {
   const name = (i: number | undefined): string => (i === undefined ? "?" : results.choices[i]?.name ?? "?");
   switch (ctx.metric) {
     case "share":

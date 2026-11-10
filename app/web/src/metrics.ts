@@ -115,3 +115,9 @@ export function areaValue(ctx: MetricContext, f: FeatureResult | undefined): Are
   const status: Status = valid < LOW_VOTE_THRESHOLD ? "low" : "value";
   return { status, valid, ...voteValue(ctx, f.v, valid) };
 }
+
+/** Values of the areas that show a number (not hatched, not empty): what a fitted scale is
+ * sized from, so a handful of tiny areas can't stretch it. */
+export function fitValues(values: Map<string, AreaValue>): number[] {
+  return [...values.values()].flatMap((v) => (v.status === "value" && v.value !== null ? [v.value] : []));
+}

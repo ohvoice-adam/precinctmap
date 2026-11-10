@@ -1,6 +1,7 @@
 // Area-statistics datasets (auditor property, census demographics): API types, selection,
 // and plain-language text. Census values carry a 90% margin of error and a reliability flag.
 
+import type { ScaleMode } from "../state";
 import type { Geography } from "../types";
 import { gradeLabel, num } from "./scales";
 
@@ -62,6 +63,13 @@ export interface MeasureDetail {
 export interface MeasureSelection {
   metric: string;
   geography: Geography;
+  scale: ScaleMode; // "relative" only for kinds with a fitted form (`canFitKind`)
+}
+
+/** Kinds whose fixed bins can hide an area-to-area spread that is small against the whole
+ * range. Grades (a fixed meaning) and the mean-minus-median gap (centered on zero) have none. */
+export function canFitKind(kind: MeasureKind): boolean {
+  return kind !== "score" && kind !== "currency_delta";
 }
 
 /** Property areas with fewer residential parcels than this are hatched. */
@@ -71,11 +79,12 @@ export const INCOME_TOP = 200_000;
 
 const DEFAULT_METRIC: Record<Dataset, string> = { property: "likely_rental_share", census: "bachelors_share" };
 
-export function resolveMeasure(cat: MeasureCatalog, metric?: string, geography?: string): MeasureSelection {
+export function resolveMeasure(cat: MeasureCatalog, metric?: string, geography?: string, scale?: string): MeasureSelection {
   const fallback = DEFAULT_METRIC[cat.dataset];
   const m = cat.metrics.find((x) => x.metric === metric) ?? cat.metrics.find((x) => x.metric === fallback) ?? cat.metrics[0];
   const g = cat.geographies.find((x) => x.geography === geography) ?? cat.geographies[0];
-  return { metric: m?.metric ?? fallback, geography: g?.geography ?? "precinct" };
+  const fit = scale === "rel" && m !== undefined && canFitKind(m.kind);
+  return { metric: m?.metric ?? fallback, geography: g?.geography ?? "precinct", scale: fit ? "relative" : "fixed" };
 }
 
 export function formatValue(kind: MeasureKind, value: number, dataset: Dataset = "property"): string {

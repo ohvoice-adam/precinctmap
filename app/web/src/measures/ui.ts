@@ -3,7 +3,7 @@
 import { compact, el, option } from "../ui/dom";
 import { ChipGroup, Picker, step } from "../ui/steps";
 import type { MeasureCatalog, MeasureDetail, MeasureSelection, MeasureStats } from "./model";
-import { formatMoe, formatValue } from "./model";
+import { canFitKind, formatMoe, formatValue } from "./model";
 
 /** Property and census steps: measure (grouped by topic), then geography. */
 export class MeasureControls {
@@ -13,8 +13,12 @@ export class MeasureControls {
     this.emit({ geography: v as MeasureSelection["geography"] });
   });
 
+  private readonly scale = new ChipGroup("ctl-pscale", (v) => { this.emit({ scale: v as MeasureSelection["scale"] }); }, true);
+  private readonly scaleField = el("div", { class: "subfield" },
+    el("span", { class: "sub-label", id: "ctl-pscale-label" }, "Color scale"), this.scale.root);
+
   constructor(private readonly emit: (change: Partial<MeasureSelection>) => void) {
-    this.root.append(step(1, "Measure", "ctl-pmetric", this.metric.root), step(2, "Map by", "ctl-pgeo", this.geography.root));
+    this.root.append(step(1, "Measure", "ctl-pmetric", this.metric.root, this.scaleField), step(2, "Map by", "ctl-pgeo", this.geography.root));
   }
 
   /** Measures are listed under their group headings, in catalog order. */
@@ -26,6 +30,11 @@ export class MeasureControls {
       ),
     );
     this.metric.sync(true);
+    // Fixed bins are one ladder for every area; fitted bins follow this measure's own spread, so a
+    // small group's geography shows. Not offered for grades or the mean-minus-median gap.
+    const kind = cat.metrics.find((m) => m.metric === sel.metric)?.kind;
+    this.scaleField.hidden = kind === undefined || !canFitKind(kind);
+    this.scale.render([{ value: "fixed", label: "Fixed bins" }, { value: "relative", label: "Fit to this measure" }], sel.scale);
     this.geography.render(cat.geographies.map((g) => ({ value: g.geography, label: g.label })), sel.geography);
   }
 }

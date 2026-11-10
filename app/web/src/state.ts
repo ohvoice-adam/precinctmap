@@ -17,6 +17,10 @@ export type Metric =
   | "party_share"
   | "party_ballots";
 
+/** "fixed": the same bins for every candidate or party. "relative": bins fitted to the selected
+ * candidate's or party's own spread across the mapped areas (see fit.ts). */
+export type ScaleMode = "fixed" | "relative";
+
 export interface Selection {
   year: number;
   election: string;
@@ -24,9 +28,10 @@ export interface Selection {
   metric: Metric;
   choice: string | null; // the candidate ("share") or party ballot (party_* metrics)
   geography: Geography;
+  scale: ScaleMode; // only "relative" where `canFit(metric)`
 }
 
-export type RawSelection = Partial<Record<"d" | "y" | "e" | "c" | "m" | "ch" | "g" | "pm", string>>;
+export type RawSelection = Partial<Record<"d" | "y" | "e" | "c" | "m" | "ch" | "g" | "pm" | "sc", string>>;
 
 export const METRIC_LABELS: Record<Metric, string> = {
   share: "Candidate's share",
@@ -46,6 +51,12 @@ export const TURNOUT_METRICS: ReadonlySet<Metric> = new Set(["turnout", "ballots
 
 /** Metrics that need a choice: a candidate, or a party ballot. */
 export function usesChoice(metric: Metric): boolean {
+  return metric === "share" || PARTY_METRICS.has(metric);
+}
+
+/** Metrics about one selected item (a candidate or a party ballot) whose fixed 0-100% bins can
+ * hide its variation when the item's own range is small. */
+export function canFit(metric: Metric): boolean {
   return metric === "share" || PARTY_METRICS.has(metric);
 }
 
@@ -93,7 +104,8 @@ export function resolve(catalog: Catalog, raw: RawSelection): Selection | null {
     usesChoice(metric) ? (pool.find((c) => c.choice_id === raw.ch) ?? pool[0])?.choice_id ?? null : null;
   const geos = election.geographies.map((g) => g.geography);
   const geography = geos.find((g) => g === raw.g) ?? geos[0] ?? "precinct";
-  return { year: election.year, election: election.election_id, contest: contest.contest_id, metric, choice, geography };
+  const scale: ScaleMode = raw.sc === "rel" && canFit(metric) ? "relative" : "fixed";
+  return { year: election.year, election: election.election_id, contest: contest.contest_id, metric, choice, geography, scale };
 }
 
 export function toParams(sel: Selection): URLSearchParams {
@@ -105,13 +117,14 @@ export function toParams(sel: Selection): URLSearchParams {
     g: sel.geography,
   });
   if (sel.choice) p.set("ch", sel.choice);
+  if (sel.scale === "relative") p.set("sc", "rel");
   return p;
 }
 
 export function fromParams(search: string): RawSelection {
   const p = new URLSearchParams(search);
   const raw: RawSelection = {};
-  for (const key of ["d", "y", "e", "c", "m", "ch", "g", "pm"] as const) {
+  for (const key of ["d", "y", "e", "c", "m", "ch", "g", "pm", "sc"] as const) {
     const v = p.get(key);
     if (v !== null) raw[key] = v;
   }
@@ -131,13 +144,14 @@ export function findContest(catalog: Catalog, sel: Selection): CatalogContest {
 }
 
 /** A control change: one field the user just picked. */
-export type Change = Partial<Pick<Selection, "election" | "contest" | "metric" | "choice" | "geography">> & {
+export type Change = Partial<Pick<Selection, "election" | "contest" | "metric" | "choice" | "geography" | "scale">> & {
   year?: number;
 };
 
 /** Merge a control change into the selection, dropping what no longer applies. */
 export function applyChange(sel: Selection, change: Change): RawSelection {
-  const base: RawSelection = { m: sel.metric, g: sel.geography };
+  const scale = change.scale ?? sel.scale;
+  const base: RawSelection = { m: sel.metric, g: sel.geography, ...(scale === "relative" ? { sc: "rel" } : {}) };
   if (change.year !== undefined) return { ...base, y: String(change.year) };
   if (change.election) return { ...base, e: change.election };
   if (change.contest) return { ...base, e: sel.election, c: change.contest };

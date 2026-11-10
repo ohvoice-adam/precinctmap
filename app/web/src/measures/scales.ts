@@ -1,6 +1,8 @@
 // Fixed bins for area statistics (property and census). Same edges for every area and view,
 // so a color always means the same range; never party red or blue.
 
+import type { FitFormat } from "../fit";
+import { fitBins } from "../fit";
 import type { Bin, Scale } from "../scales";
 import { SEQUENTIAL } from "../scales";
 import type { Dataset, MeasureKind } from "./model";
@@ -59,7 +61,24 @@ function scoreScale(label: string): Scale {
     ({ ...b, label: i === 0 ? "Below 2.5 (D or lower)" : i === 7 ? "3.9 and up (B+ or higher)" : `${b.label} (≈${gradeLabel((b.from + b.to) / 2)})` })) };
 }
 
-export function measureScale(kind: MeasureKind, label: string, dataset: Dataset = "property"): Scale {
+const FIT_FORMAT: Partial<Record<MeasureKind, { format: FitFormat; anchorZero: boolean }>> = {
+  share: { format: "percent", anchorZero: true },
+  count: { format: "count", anchorZero: true },
+  density: { format: "count", anchorZero: false },
+  currency: { format: "money", anchorZero: false },
+  ratio: { format: "decimal", anchorZero: false },
+};
+
+/** `fit`: every value on the map, when the user chose the relative scale; the bins then follow
+ * this measure's own spread (see fit.ts) instead of the fixed ladder. */
+export function measureScale(kind: MeasureKind, label: string, dataset: Dataset = "property", fit: number[] | null = null): Scale {
+  const fixed = fixedScale(kind, label, dataset);
+  const how = FIT_FORMAT[kind];
+  const fitted = fit && how ? fitBins(fit, SEQUENTIAL, how.format, how.anchorZero) : null;
+  return fitted ? { ...fixed, title: `${label} (scale fitted to this measure)`, bins: fitted } : fixed;
+}
+
+function fixedScale(kind: MeasureKind, label: string, dataset: Dataset): Scale {
   switch (kind) {
     case "share":
       return { kind: "sequential", title: label, bins: ladder(SHARE_EDGES[dataset], SEQUENTIAL, pct) };

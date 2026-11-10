@@ -8,7 +8,7 @@ import type { Dataset, MeasureCatalog, MeasureSelection, MeasureStats } from "./
 import { measureTooltip, resolveMeasure } from "./measures/model";
 import { MeasureControls, renderMeasureDetail, renderMeasureSidebar } from "./measures/ui";
 import type { AreaValue, MetricContext } from "./metrics";
-import { areaValue, metricContext } from "./metrics";
+import { areaValue, fitValues, metricContext } from "./metrics";
 import { binOf, scaleFor } from "./scales";
 import type { RawSelection, Selection } from "./state";
 import { applyChange, findContest, findElection, fromParams, resolve, toParams } from "./state";
@@ -125,7 +125,8 @@ export class App {
 
   private async changeMeasure(c: Partial<MeasureSelection>): Promise<void> {
     if (this.msel && this.mode !== "results") {
-      await this.load({ d: this.mode, pm: c.metric ?? this.msel.metric, g: c.geography ?? this.msel.geography }, true);
+      const scale = c.scale ?? this.msel.scale;
+      await this.load({ d: this.mode, pm: c.metric ?? this.msel.metric, g: c.geography ?? this.msel.geography, ...(scale === "relative" ? { sc: "rel" } : {}) }, true);
     }
   }
 
@@ -144,9 +145,11 @@ export class App {
     this.controls.root.hidden = this.mode !== "results";
     this.measureControls.root.hidden = this.mode === "results";
     if (cat) {
-      const msel = resolveMeasure(cat, raw.pm, raw.g);
+      const msel = resolveMeasure(cat, raw.pm, raw.g, raw.sc);
       this.msel = msel;
-      const url = `?${new URLSearchParams({ d: cat.dataset, pm: msel.metric, g: msel.geography }).toString()}`;
+      const params = new URLSearchParams({ d: cat.dataset, pm: msel.metric, g: msel.geography });
+      if (msel.scale === "relative") params.set("sc", "rel");
+      const url = `?${params.toString()}`;
       if (push) history.pushState(null, "", url);
       else history.replaceState(null, "", url);
       this.measureControls.render(cat, msel);
@@ -183,15 +186,16 @@ export class App {
       this.closeDetail();
     }
     const ctx = metricContext(results, sel);
-    const scale = scaleFor(ctx, results);
     const values = new Map<string, AreaValue>();
-    const states = new Map<string, AreaState>();
     for (const f of areas.features) {
       const id = f.properties.feature_id;
-      const v = areaValue(ctx, results.features[id]);
-      values.set(id, v);
-      states.set(id, { status: v.status, bin: binOf(scale, v.value, v.leader) });
+      values.set(id, areaValue(ctx, results.features[id]));
     }
+    // The fitted scale is sized from areas with enough votes to be shown (not the hatched ones).
+    const fit = sel.scale === "relative" ? fitValues(values) : null;
+    const scale = scaleFor(ctx, results, fit);
+    const states = new Map<string, AreaState>();
+    for (const [id, v] of values) states.set(id, { status: v.status, bin: binOf(scale, v.value, v.leader) });
     this.view = { results, ctx, values };
     this.table.render(resultsTable(areas, values, ctx, results, findContest(this.catalog, sel).name));
     this.map.paint(scale.bins.map((b) => b.color), states);
