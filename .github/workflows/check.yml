@@ -1,0 +1,41 @@
+name: Check
+
+# Runs the same gate as local development (scripts/check.sh): ruff, file/function size, mypy,
+# pytest (BigQuery tests skipped), then tsc, eslint, vitest and the web build.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Actions are pinned to commit SHAs of releases at least two weeks old, matching the
+      # project's supply-chain policy for uv and pnpm dependencies.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          # Same uv version as the Dockerfile.
+          version: "0.13.3"
+          enable-cache: true
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install Python 3.12 and dependencies
+        run: uv sync --frozen
+
+      - name: Check
+        run: scripts/check.sh
