@@ -1,11 +1,11 @@
 # Project notes
 
-Status as of 2026-10-21, at the end of Phase 7.
+Status as of 2026-11-10. Sections dated 2026-10-21 describe that phase; later work is listed under "Added since 2026-10-21".
 
 ## What was built
 
 - **`precinctmap` library** (`src/precinctmap/`):
-  - **Staged ingest** of Franklin County BOE precinct exports, with six adapters (`fcboe_sheets_2016`, `fcboe_general_2016`, `fcboe_classic_2020`, `fcboe_general_2020`, `fcboe_wide_2024`, `fcboe_wide_2025`) and exactly one allowed to claim a file. The 2020 layout splits same-name Democratic and Republican contests by party, and names repeated central-committee contests by the precincts that carried them (the file gives no district).
+  - **Staged ingest** of Franklin County BOE precinct exports, with seven adapters (`fcboe_sheets_2016`, `fcboe_general_2016`, `fcboe_classic_2020`, `fcboe_general_2020`, `fcboe_wide_2023`, `fcboe_wide_2024`, `fcboe_wide_2025`) and exactly one allowed to claim a file. The 2020 layout splits same-name Democratic and Republican contests by party, and names repeated central-committee contests by the precincts that carried them (the file gives no district).
   - **Logged normalization**, and a reviewed table of typo fixes for display names.
   - **Election identification from evidence:** file name, content and calendar. A file is blocked rather than guessed at.
   - **Review reports** with the precinct match rate, county-total reconciliation and a long-format re-total.
@@ -46,6 +46,16 @@ Status as of 2026-10-21, at the end of Phase 7.
 - **Countywide:** 416,826 residential parcels including 6,651 apartment buildings; 139,206 likely rentals, 84,630 LLC-owned. Estimated housing units 580,415 (2020 census: 580,903), 300,030 of them likely rentals (51.7%). Apartment unit methods: census block 3,641 buildings, class bound 2,753, voter units 257. Only 6.1% of homestead (owner-occupied) parcels are flagged, as a sanity check.
 - **Not mappable:** building condition (`COND` is blank in the file). The tax-bill mailing address is not used for rentals; see `CLAUDE.md`.
 
+## Added since 2026-10-21
+
+- **Geographies:** Columbus-style wards (precincts dissolved by name prefix; always exact), and Ohio House and Senate districts (TIGER SLDL/SLDU clipped to the county, dated vintages for the 2011, 2022 and September 2023 maps). Property and census data use the state districts too, with the current map.
+- **Registered-voter measures:** registered voters per square mile of land and per estimated housing unit, from the most recent election with registration. Land area is each feature's own polygon minus TIGER area water.
+- **ACS census demographics** (including naturalized citizens), a sortable table view, and a "this measure only" CSV export.
+- **Adapters:** `fcboe_wide_2023` (2023 general), plus `fcboe_general_2016`, `fcboe_general_2020` and combined "(all districts)" delegate contests.
+- **Data bundles and `scripts/update-data.sh`:** export every table as Parquet in a release, and install or update an instance from one. `scripts/download_tiger.py` fetches the TIGER files the boundary config needs.
+- **Live results scraper** (`scripts/scrape_live_results.py`): writes the Franklin County BOE live feed as a `fcboe_wide_2025` workbook and can stage it through the admin API. It never commits.
+- **Map-first redesign** of the client, with the map and table side by side from 1360px.
+
 ## Deferred or known limitations
 
 - **Vote-for** is unknown for every 2024 contest (no over/under columns) and for 26 contests in 2025–2026 with split ballot styles. It's used for display only.
@@ -61,8 +71,7 @@ Status as of 2026-10-21, at the end of Phase 7.
 
 
 1. **Delaware and Fairfield county adapters,** for full Columbus coverage. This needs samples, those counties' precinct boundaries, and a decision on how to show combined totals.
-2. **More geographies:** Columbus wards (from `WARDCODE` and the precinct name), Ohio House and Senate districts, and school districts. Each is a registry entry plus a crosswalk; the API and client need no changes.
+2. **More geographies:** school districts (wards and Ohio House and Senate districts are done). Each is a registry entry plus a crosswalk; the API and client need no changes.
 3. **BigQuery sync** of the catalog and `geo_results` to the project in `GOOGLE_CLOUD_PROJECT` (one way, after each commit). It's never queried at request time.
 4. **Admin conveniences:** a history of uploads and commits from `ingest_events`, and boundary reloads from the admin page.
-5. **District demographics** from the same 2020 blocks already used as weights.
-6. **The November 2026 general:** its date is already in `catalog/calendar.py`. If the BOE changes the export layout, write a new adapter from the real file.
+5. **The November 2026 general:** its date is already in `catalog/calendar.py`. If the BOE changes the export layout, write a new adapter from the real file.
