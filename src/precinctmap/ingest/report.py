@@ -26,6 +26,7 @@ class ReviewInputs:
     already_ingested: dict[str, str] | None
     reprocessing: dict[str, str] | None
     replaces: dict[str, Any] | None
+    revives: dict[str, str] | None = None  # this exact file was loaded before, then replaced
 
 
 def build_report(x: ReviewInputs) -> Report:
@@ -42,6 +43,7 @@ def build_report(x: ReviewInputs) -> Report:
         "already_ingested": x.already_ingested,
         "reprocessing": x.reprocessing,
         "replaces": x.replaces,
+        "revives": x.revives,
         "election": _election(x.ident),
         "precincts": _precincts(x.parsed),
         "contests": _contests(x),
@@ -76,11 +78,23 @@ def _findings(x: ReviewInputs) -> tuple[list[str], list[str]]:
         warnings.append(f"vote-for unknown for {unknown} contests (display only)")
     if x.parsed.out_of_county:
         warnings.append("file includes other counties' votes for joint contests (kept, not mapped)")
-    if x.reprocessing:
-        warnings.append("reprocess: commit replaces this already-ingested file's rows")
-    if x.replaces:
-        warnings.append(f"commit will supersede {x.replaces['filename']}")
+    warnings += _history_warnings(x)
     return blockers, warnings
+
+
+def _history_warnings(x: ReviewInputs) -> list[str]:
+    """What commit will do to files already in the store."""
+    out: list[str] = []
+    if x.reprocessing:
+        out.append("reprocess: commit replaces this already-ingested file's rows")
+    if x.replaces:
+        out.append(f"commit will supersede {x.replaces['filename']}")
+    if x.revives:
+        out.append(
+            f"this exact file was loaded before for {x.revives['election_id']} and replaced; "
+            "commit discards that superseded record and loads it for this election"
+        )
+    return out
 
 
 def _election(ident: ElectionIdentity) -> dict[str, Any]:

@@ -70,10 +70,7 @@ def stage_file(
     match = boundary_match(con, parsed, ident.election_date)
     election_id = ident.election_id
     tables = build_tables(parsed, election_id, sha, vote_for) if election_id else None
-    found = _already_ingested(con, sha)
-    if reprocess and (found is None or found["status"] != "active"):
-        raise StagingError(f"{path.name}: --reprocess needs an active ingested file, found {found}")
-    already = None if reprocess else found
+    found, already, revives = _history(con, sha, path.name, reprocess)
     report = build_report(
         ReviewInputs(
             staging_id=staging_id,
@@ -88,6 +85,7 @@ def stage_file(
             already_ingested=already,
             reprocessing=found if reprocess else None,
             replaces=_predecessor(con, election_id, sha) if election_id else None,
+            revives=revives,
         )
     )
     directory = staging_dir(settings, staging_id)
@@ -97,6 +95,21 @@ def stage_file(
             frames["unmatched_precincts"] = _unmatched(match, election_id or "", sha)
         _write(con, directory, path, report, frames)
     return Staged(staging_id, directory, report)
+
+
+def _history(
+    con: duckdb.DuckDBPyConnection, sha: str, filename: str, reprocess: bool
+) -> tuple[dict[str, str] | None, dict[str, str] | None, dict[str, str] | None]:
+    """(found, already, revives) for a file's sha256.
+
+    A superseded record (same sha256, replaced by another file) holds no rows: the file can be
+    ingested again, and commit discards the stale record. Only an active one is a no-op.
+    """
+    found = _already_ingested(con, sha)
+    if reprocess and (found is None or found["status"] != "active"):
+        raise StagingError(f"{filename}: --reprocess needs an active ingested file, found {found}")
+    revives = found if found is not None and found["status"] == "superseded" else None
+    return found, (None if reprocess or revives else found), revives
 
 
 def _contest_ids(tables: Tables | None) -> dict[int, str]:

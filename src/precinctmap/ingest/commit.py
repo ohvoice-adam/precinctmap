@@ -68,7 +68,9 @@ def commit_staging(
     source = directory / m["source_copy"]
     if sha256_file(source) != m["sha256"]:
         raise StagingError(f"{staging_id}: staged source no longer matches its sha256")
-    exists = con.execute("SELECT 1 FROM source_files WHERE sha256 = ?", [m["sha256"]]).fetchone()
+    exists = con.execute(
+        "SELECT 1 FROM source_files WHERE sha256 = ? AND status = 'active'", [m["sha256"]]
+    ).fetchone()
     if exists and not m.get("reprocess"):
         _event(
             con, staging_id, "noop", election["election_id"], m["sha256"], "sha256 already ingested"
@@ -82,6 +84,8 @@ def commit_staging(
     try:
         if m.get("reprocess"):
             _remove_file(con, m["staging_id"], election["election_id"], m["sha256"])
+        else:
+            _discard_superseded_copy(con, m["staging_id"], election["election_id"], m["sha256"])
         detail = _apply(con, directory, m, raw)
         con.execute("COMMIT")
     except Exception:
@@ -168,10 +172,35 @@ def _remove_file(
     con: duckdb.DuckDBPyConnection, staging_id: str, election_id: str, file_id: str
 ) -> None:
     """Delete every row a file produced so it can be re-derived (reprocess)."""
+    _delete_file_rows(con, file_id)
+    _event(con, staging_id, "reprocess", election_id, file_id, "rows re-derived from same file")
+
+
+def _delete_file_rows(con: duckdb.DuckDBPyConnection, file_id: str) -> None:
     for table in DATA_TABLES + LOG_TABLES:
         con.execute(f"DELETE FROM {table} WHERE file_id = ?", [file_id])
     con.execute("DELETE FROM source_files WHERE file_id = ?", [file_id])
-    _event(con, staging_id, "reprocess", election_id, file_id, "rows re-derived from same file")
+
+
+def _discard_superseded_copy(
+    con: duckdb.DuckDBPyConnection, staging_id: str, election_id: str, file_id: str
+) -> None:
+    """The same file was loaded before, then replaced: its record (file_id is the sha256) would
+    collide with this load. Drop it, keeping the history in ingest_events."""
+    row = con.execute(
+        "SELECT election_id, superseded_by FROM source_files"
+        " WHERE file_id = ? AND status = 'superseded'",
+        [file_id],
+    ).fetchone()
+    if row is None:
+        return
+    _delete_file_rows(con, file_id)
+    detail = (
+        f"superseded record for {row[0]} (replaced by {row[1]}) discarded; loaded for {election_id}"
+    )
+    _event(
+        con, staging_id, "supersede", election_id, file_id, detail
+    )  # the action set is fixed by the migration
 
 
 def _verify_counts(con: duckdb.DuckDBPyConnection, m: dict[str, Any]) -> None:

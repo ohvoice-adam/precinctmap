@@ -107,6 +107,40 @@ def test_corrected_file_supersedes_predecessor(with_precincts, settings, tmp_pat
     assert _count(con, "SELECT count(*) FROM ingest_events WHERE action = 'supersede'") == 1
 
 
+def test_replaced_file_can_be_loaded_again_for_another_election(with_precincts, settings, tmp_path):
+    """A file first loaded under the wrong election, then replaced there, is not stuck: its
+    superseded record shares the sha256 (file_id) and must not make the re-load a no-op."""
+    con = with_precincts
+    wrong = sheet_2025().write(tmp_path / GENERAL)
+    commit_staging(con, settings, stage_file(con, settings, wrong).staging_id)
+    fixed_path = tmp_path / "fixed" / GENERAL
+    fixed_path.parent.mkdir()
+    real = stage_file(con, settings, sheet_2025(zoo_extra=7).write(fixed_path))
+    commit_staging(con, settings, real.staging_id, allow_replace=True)
+    wrong_election = con.execute(
+        "SELECT election_id FROM source_files WHERE status = 'superseded'"
+    ).fetchone()[0]
+
+    # Review as the other election: not a no-op, and the report says what commit will discard.
+    again = stage_file(con, settings, wrong, override_date=date(2024, 11, 5))
+    assert again.report["status"] == "ready"
+    assert again.report["revives"]["election_id"] == wrong_election
+    assert any("loaded before" in w for w in again.report["warnings"])
+    result = commit_staging(con, settings, again.staging_id)
+    assert result.action == "commit"
+
+    rows = con.execute(
+        "SELECT election_id, status FROM source_files ORDER BY election_id"
+    ).fetchall()
+    assert rows == [("franklin-2024-11-05-general", "active"), (wrong_election, "active")]
+    assert _count(con, "SELECT count(DISTINCT file_id) FROM precinct_results") == 2
+    assert _count(con, "SELECT count(*) FROM ingest_events WHERE detail LIKE '%discarded%'") == 1
+    # Committing it a second time is a no-op again.
+    assert (
+        stage_file(con, settings, wrong, override_date=date(2024, 11, 5)).report["status"] == "noop"
+    )
+
+
 def test_blocked_review_cannot_commit(with_precincts, settings, tmp_path):
     staged = stage_file(with_precincts, settings, sheet_2024().write(tmp_path / "Results.xlsx"))
     assert staged.report["status"] == "blocked"
