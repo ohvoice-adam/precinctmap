@@ -125,7 +125,7 @@ scripts/update-data.sh --file path/to/precinctmap-data.tar.gz --yes   # an archi
 ```
 
 The script:
-- **Downloads** the release, with `gh` if it's installed (needed while the repository is private), otherwise `curl`.
+- **Downloads** the release, with `gh` if it's installed, otherwise `curl`.
 - **Verifies** the archive's checksum.
 - **Builds** the app for the code you have checked out.
 - **Shows** what the release contains.
