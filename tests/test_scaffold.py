@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -5,6 +6,8 @@ from typer.testing import CliRunner
 from precinctmap import __version__
 from precinctmap.cli import app
 from precinctmap.config import load_settings
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def test_settings_defaults_put_db_under_data_dir():
@@ -30,7 +33,9 @@ def test_cli_catalog_on_empty_store(tmp_path, monkeypatch):
 def test_cli_ingest_requires_exactly_one_mode():
     result = CliRunner().invoke(app, ["ingest"])
     assert result.exit_code != 0
-    assert "exactly one of --review" in result.output
+    # Typer renders errors through rich. When FORCE_COLOR is set (as on GitHub Actions) the
+    # output carries ANSI codes, even inside "--review", so compare the plain text.
+    assert "exactly one of --review" in _ANSI.sub("", result.output)
 
 
 def test_cli_version_prints_package_version():
