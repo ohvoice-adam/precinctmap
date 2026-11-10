@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { binOf } from "../scales";
 import type { MeasureCatalog, MeasureKind, MeasureStats } from "./model";
-import { formatMoe, formatValue, isLow, measureTooltip, resolveMeasure } from "./model";
+import { canFitKind, formatMoe, formatValue, isLow, measureTooltip, resolveMeasure } from "./model";
 import { gradeLabel, measureScale } from "./scales";
 
 const CAT: MeasureCatalog = {
@@ -24,9 +24,43 @@ const CAT: MeasureCatalog = {
 
 describe("property selection", () => {
   it("defaults to the rental share and keeps valid choices", () => {
-    expect(resolveMeasure(CAT)).toEqual({ metric: "likely_rental_share", geography: "precinct" });
-    expect(resolveMeasure(CAT, "median_total_value", "council_district")).toEqual({ metric: "median_total_value", geography: "council_district" });
+    expect(resolveMeasure(CAT)).toEqual({ metric: "likely_rental_share", geography: "precinct", scale: "fixed" });
+    expect(resolveMeasure(CAT, "median_total_value", "council_district")).toEqual({ metric: "median_total_value", geography: "council_district", scale: "fixed" });
     expect(resolveMeasure(CAT, "bogus", "zcta").geography).toBe("precinct");
+  });
+});
+
+describe("fitted scale", () => {
+  const shares = Array.from({ length: 60 }, (_, i) => 0.02 + (0.06 * i) / 59); // a small group: 2-8%
+
+  it("is offered for shares, counts, dollars, densities and ratios, not grades or the median gap", () => {
+    const kinds: MeasureKind[] = ["share", "count", "currency", "density", "ratio"];
+    for (const k of kinds) expect(canFitKind(k)).toBe(true);
+    expect(canFitKind("score")).toBe(false);
+    expect(canFitKind("currency_delta")).toBe(false);
+  });
+
+  it("round-trips through the selection and is dropped for measures without a fitted form", () => {
+    expect(resolveMeasure(CAT, "likely_rental_share", "precinct", "rel").scale).toBe("relative");
+    expect(resolveMeasure(CAT, "likely_rental_share", "precinct").scale).toBe("fixed");
+    const withScore: MeasureCatalog = { ...CAT, metrics: [...CAT.metrics, { metric: "grade", label: "Grade", kind: "score", description: "", group: "Grade" }] };
+    expect(resolveMeasure(withScore, "grade", "precinct", "rel").scale).toBe("fixed");
+  });
+
+  it("spreads a small share across the bins that the fixed ladder crams into two", () => {
+    const fixed = measureScale("share", "x", "census");
+    const fitted = measureScale("share", "x", "census", shares);
+    const used = (scale: typeof fixed): number => new Set(shares.map((v) => binOf(scale, v, null))).size;
+    expect(used(fixed)).toBeLessThanOrEqual(3);
+    expect(used(fitted)).toBeGreaterThanOrEqual(6);
+    expect(fitted.title).toContain("scale fitted to this measure");
+    expect(fitted.bins).toHaveLength(fixed.bins.length);
+  });
+
+  it("keeps the fixed scale for grades, the median gap, or when there is nothing to fit", () => {
+    expect(measureScale("score", "x", "property", shares).title).toBe("x");
+    expect(measureScale("currency_delta", "x", "property", shares).bins).toEqual(measureScale("currency_delta", "x").bins);
+    expect(measureScale("share", "x", "property", []).bins).toEqual(measureScale("share", "x").bins);
   });
 });
 
@@ -107,7 +141,7 @@ describe("census measures", () => {
   } as unknown as MeasureStats;
 
   it("defaults to the bachelor's share", () => {
-    expect(resolveMeasure(CENSUS)).toEqual({ metric: "bachelors_share", geography: "precinct" });
+    expect(resolveMeasure(CENSUS)).toEqual({ metric: "bachelors_share", geography: "precinct", scale: "fixed" });
   });
 
   it("shows the margin of error and the universe, and flags unreliable estimates", () => {

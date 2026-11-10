@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { LOW_VOTE_THRESHOLD, areaValue, metricContext } from "./metrics";
+import { LOW_VOTE_THRESHOLD, areaValue, fitValues, metricContext } from "./metrics";
 import { binOf, LEADER_COLORS, OTHER_COLOR, SEQUENTIAL, scaleFor } from "./scales";
 import type { Metric, Selection } from "./state";
 import { councilResults } from "./testdata";
 import { STATUS_TEXT, tooltipLines } from "./ui/format";
 
 function ctxFor(metric: Metric, choice: string | null = null) {
-  const sel: Selection = { year: 2025, election: "e", contest: "e:np:council", metric, choice, geography: "precinct" };
+  const sel: Selection = { year: 2025, election: "e", contest: "e:np:council", metric, choice, geography: "precinct", scale: "fixed" };
   return metricContext(councilResults(), sel);
 }
 
@@ -52,6 +52,28 @@ describe("scales", () => {
     expect(binOf(scale, 0.6, null)).toBe(5); // 60-70%
     expect(binOf(scale, 1, null)).toBe(7);
     expect(binOf(scale, null, null)).toBe(-1);
+  });
+
+  it("fits share bins to the selected candidate when asked, and keeps the fixed bins otherwise", () => {
+    const r = councilResults();
+    const ctx = ctxFor("share", "a");
+    const values = new Map(Object.keys(r.features).map((id) => [id, areaValue(ctx, r.features[id])]));
+    const fixed = scaleFor(ctx, r);
+    const fitted = scaleFor(ctx, r, fitValues(values));
+    expect(fixed.bins[1]?.label).toBe("20%–30%");
+    expect(fitted.title).toContain("scale fitted to this candidate");
+    expect(fitted.bins).toHaveLength(SEQUENTIAL.length);
+    expect(fitted.bins.at(-1)?.label).toMatch(/\+$/);
+    expect(fitted.bins.map((b) => b.color)).toEqual(SEQUENTIAL);
+    // Every area that shows a value lands in some bin.
+    for (const v of values.values()) if (v.status === "value") expect(binOf(fitted, v.value, null)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("has no fitted form for margins, leaders or yes shares", () => {
+    const r = councilResults();
+    for (const m of ["margin", "leader", "yes_share", "total"] as const) {
+      expect(scaleFor(ctxFor(m), r, [0.1, 0.2]).title).not.toContain("fitted");
+    }
   });
 
   it("labels the margin arms with candidate names and a neutral middle", () => {
@@ -116,7 +138,7 @@ describe("turnout measures", () => {
     features: { A: { v: [60, 30], reg: 300, bal: 100 }, B: { v: [2, 1], reg: 20, bal: 4 }, C: { v: [0, 0], reg: 50, bal: 0 } },
   };
   const ctx = (metric: Metric, choice: string | null = null) =>
-    metricContext(results, { year: 2024, election: "e", contest: "e:turnout", metric, choice, geography: "precinct" });
+    metricContext(results, { year: 2024, election: "e", contest: "e:turnout", metric, choice, geography: "precinct", scale: "fixed" });
 
   it("divides by registered voters or by ballots cast, and counts ballots", () => {
     expect(areaValue(ctx("turnout"), results.features.A).value).toBeCloseTo(100 / 300);

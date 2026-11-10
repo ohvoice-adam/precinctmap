@@ -11,7 +11,7 @@ describe("resolve", () => {
     const sel = resolve(CATALOG, {});
     expect(sel).toEqual({
       year: 2025, election: GENERAL.election_id, contest: "e:np:levy",
-      metric: "yes_share", choice: null, geography: "precinct",
+      metric: "yes_share", choice: null, geography: "precinct", scale: "fixed",
     });
   });
 
@@ -72,6 +72,32 @@ describe("turnout selection", () => {
   it("falls back to overall turnout where there are no party ballots", () => {
     const sel = resolve(CATALOG, { e: GENERAL.election_id, c: TURNOUT_GENERAL.contest_id, m: "party_share" })!;
     expect([sel.metric, sel.choice]).toEqual(["turnout", null]);
+  });
+});
+
+describe("color scale mode", () => {
+  const base = { e: GENERAL.election_id, c: "e:np:council", m: "share", g: "precinct" };
+
+  it("is fixed unless the link asks for the fitted scale, and round-trips through the URL", () => {
+    expect(resolve(CATALOG, base)?.scale).toBe("fixed");
+    const sel = resolve(CATALOG, { ...base, sc: "rel" })!;
+    expect(sel.scale).toBe("relative");
+    expect(toParams(sel).get("sc")).toBe("rel");
+    expect(resolve(CATALOG, fromParams(`?${toParams(sel).toString()}`))).toEqual(sel);
+    expect(toParams(resolve(CATALOG, base)!).has("sc")).toBe(false); // fixed leaves links as they were
+  });
+
+  it("is dropped for views with no fitted form", () => {
+    expect(resolve(CATALOG, { ...base, m: "leader", sc: "rel" })?.scale).toBe("fixed");
+    expect(resolve(CATALOG, { e: GENERAL.election_id, c: "e:np:levy", sc: "rel" })?.scale).toBe("fixed");
+  });
+
+  it("survives picking another candidate, contest or geography, and is dropped with the metric", () => {
+    const sel = resolve(CATALOG, { ...base, sc: "rel" })!;
+    expect(resolve(CATALOG, applyChange(sel, { choice: "e:np:council:b" }))?.scale).toBe("relative");
+    expect(resolve(CATALOG, applyChange(sel, { geography: "council_district" }))?.scale).toBe("relative");
+    expect(resolve(CATALOG, applyChange(sel, { scale: "fixed" }))?.scale).toBe("fixed");
+    expect(resolve(CATALOG, applyChange(sel, { metric: "leader" }))?.scale).toBe("fixed");
   });
 });
 

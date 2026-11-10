@@ -26,7 +26,9 @@ export async function loadMeasure(dataset: Dataset, sel: MeasureSelection, asOf:
     council ? fetchGeo("precinct", asOf) : Promise.resolve(null),
     fetchMeasure(dataset, sel.metric, sel.geography),
   ]);
-  const scale = measureScale(stats.kind, stats.label, dataset);
+  // The fitted scale is sized from areas that aren't hatched as unreliable or thin.
+  const fit = sel.scale === "relative" ? fitValues(stats) : null;
+  const scale = measureScale(stats.kind, stats.label, dataset, fit);
   const states = new Map<string, AreaState>();
   for (const f of areas.features) {
     const id = f.properties.feature_id;
@@ -38,4 +40,8 @@ export async function loadMeasure(dataset: Dataset, sel: MeasureSelection, asOf:
     states.set(id, { status: isLow(stats, v) ? "low" : "value", bin: binOf(scale, v.value, null) });
   }
   return { stats, scale, states, areas, context, county };
+}
+
+function fitValues(stats: MeasureStats): number[] {
+  return Object.values(stats.features).flatMap((v) => (v.value !== null && !isLow(stats, v) ? [v.value] : []));
 }

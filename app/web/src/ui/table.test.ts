@@ -23,7 +23,7 @@ function areas(ids: string[]): AreaCollection {
 
 function view(metric: Metric, choice: string | null = null) {
   const results = councilResults();
-  const sel: Selection = { year: 2025, election: "e", contest: "e:np:council", metric, choice, geography: "precinct" };
+  const sel: Selection = { year: 2025, election: "e", contest: "e:np:council", metric, choice, geography: "precinct", scale: "fixed" };
   const ctx = metricContext(results, sel);
   const values = new Map<string, AreaValue>(Object.entries(results.features).map(([id, f]) => [id, areaValue(ctx, f)]));
   return resultsTable(areas(["P1", "P2", "P3", "P4", "P5"]), values, ctx, results, "Council");
