@@ -2,6 +2,10 @@
 
 A map of Franklin County precinct election results. You can view results by precinct, ward, Columbus council district, city, village or township, and ZIP code area. Every number on the map traces back to an official Board of Elections results file.
 
+![The map showing November 2025 general election turnout by precinct, with the step-by-step panel on the left](project-docs/screenshot.png)
+
+*November 2025 general election turnout by precinct. Everything on the map comes from the Board of Elections' official results files.*
+
 - **Map:** `http://<server>:8000/` (or the port set in `PRECINCTMAP_PORT`). Anyone with the link can use it; there is no login.
 - **Add an election:** `http://<server>:8000/admin`. This needs the admin login.
 
@@ -205,7 +209,7 @@ scripts/check.sh   # lint, type checks, Python and web tests, production build
 
 The golden tests compare the database with the Board of Elections' published county totals. They run only when a local database exists and the app is stopped.
 
-Developer notes are in `CLAUDE.md` and `project-docs/`. Status and next steps are in `NOTES.md`.
+To contribute, start with `CONTRIBUTING.md`. Developer notes are in `CLAUDE.md` and `project-docs/`. Status and next steps are in `NOTES.md`.
 
 ## License
 
