@@ -55,7 +55,8 @@ DATASETS: tuple[Dataset, ...] = (
         "https://opendata.columbus.gov/ (search 'City Council Districts')",
         "After redistricting (the 2023 map is the first and current one).",
         "As for precincts: data/boundaries/, config/boundaries.toml, `boundaries load --replace`.",
-        "Check the City of Columbus open data terms.",
+        "City of Columbus open data. We found no license or terms of use stated for this layer; "
+        "the portal is https://opendata.columbus.gov/.",
     ),
     Dataset(
         "tiger",
@@ -109,7 +110,10 @@ DATASETS: tuple[Dataset, ...] = (
         "The auditor refreshes its downloads regularly; values change with each reappraisal.",
         "`precinctmap parcels review <Parcel.csv> --as-of <date>`, then `parcels commit <id> "
         "--replace`.",
-        "Public records; check the auditor's download terms before redistributing.",
+        "Published by the Franklin County Auditor for download. Its download page states no "
+        "license, redistribution limit or attribution requirement, and its disclaimer says "
+        "materials are provided \"as is\" with no warranties, so values and flags here may not "
+        "match the Auditor's records.",
         "Owner names and mailing addresses are dropped at read and are not in this bundle; only "
         "derived flags (LLC owner, owner elsewhere) are. The original Parcel.csv is not included.",
     ),
@@ -122,7 +126,11 @@ DATASETS: tuple[Dataset, ...] = (
         "(voter files)",
         "The voter file changes continuously; download a fresh copy before re-matching parcels.",
         "`precinctmap addresses load <VOTERFILE.TXT> --as-of <date> --commit`.",
-        "Derived from public records.",
+        "Derived from the Franklin County Board of Elections voter file. Ohio law makes the "
+        "statewide voter registration database a public record (Ohio Revised Code 3503.13(A)(1)), "
+        "and the county Board of Elections and the Secretary of State publish the file for "
+        "download with no use restrictions stated. This table still shows that a registered voter "
+        "lives at an address: don't use it to contact or identify individuals.",
         "One row per street address: house number, street, ZIP, precinct, council district, city "
         "code, and how many distinct unit numbers had a registered voter. No names, voter IDs, "
         "birth dates, party or vote history. Used only to place parcels; the voter file itself is "

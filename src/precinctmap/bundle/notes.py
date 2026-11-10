@@ -30,6 +30,15 @@ def render_notes(manifest: dict[str, Any], vintage: dict[str, list[str]]) -> str
         "Tables are Parquet (zstd). Geometry is GeoParquet; coordinates are longitude/latitude",
         "in EPSG:4269 (NAD83), which the files label CRS84 (they differ by about a meter).",
         "",
+        "## What this bundle contains",
+        "",
+        "It holds no names, voter IDs, birth dates, party, vote history, or property-owner names",
+        "or mailing addresses. It does include two row-level tables, both built from public",
+        "records: `voter_addresses` (one row per street address, with its precinct and council",
+        "district) and `parcels` / `parcel_assignments` (one row per parcel, with its site",
+        "address, values and derived flags). Everything else is results, boundaries and",
+        "aggregated statistics. Each dataset's source and stated terms are listed below.",
+        "",
     ]
     for d in DATASETS:
         lines += [f"## {d.title}", ""]
