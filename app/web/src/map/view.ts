@@ -10,7 +10,7 @@ import type { GeoJSONSource, MapGeoJSONFeature, MapMouseEvent } from "maplibre-g
 import type { AreaCollection } from "../types";
 import { BASEMAP_STYLE_URL, initialView } from "./config";
 import {
-  FILL_OPACITY, HATCH_OPACITY, LINE_COLOR, LINE_WIDTH, STATUS_COLORS, dotsImage, fillColor, hatchImage, outsideMask,
+  FILL_OPACITY, HATCH_OPACITY, fillOpacity, LINE_COLOR, LINE_WIDTH, STATUS_COLORS, dotsImage, fillColor, hatchImage, outsideMask,
 } from "./style";
 
 export interface AreaState {
@@ -108,6 +108,11 @@ export class AreaMap {
       source("context").setData({ type: "FeatureCollection", features: outside }),
       source("mask").setData(outline ? { type: "FeatureCollection", features: [outsideMask(outline)] } : EMPTY),
     ]);
+  }
+
+  /** Scale the area fill's opacity (0-1; 1 is the normal look). Hatching keeps full strength. */
+  setFillOpacity(factor: number): void {
+    this.map.setPaintProperty("areas-fill", "fill-opacity", fillOpacity(factor));
   }
 
   /** Color every area: states keyed by feature_id; areas missing from `states` get no_data. */

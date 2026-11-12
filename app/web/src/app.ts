@@ -20,6 +20,7 @@ import { STATUS_TEXT, marginSides, tooltipLines } from "./ui/format";
 import { measureOnlyButton } from "./ui/export";
 import { AreaTable } from "./ui/table";
 import { measureTable, resultsTable } from "./ui/table-rows";
+import { OpacitySlider } from "./ui/opacity";
 import { ViewToggle } from "./ui/viewmode";
 import { renderLegend } from "./ui/legend";
 import { renderDetail, renderDetailError } from "./ui/panel";
@@ -84,8 +85,13 @@ export class App {
       stage.dataset.view = view;
       if (view !== "table") this.map.map.resize();
     });
-    bar.append(toggle.root);
+    const opacity = new OpacitySlider((factor) => {
+      // The layers exist once the map has loaded; the slider's first apply waits for that.
+      void this.map.ready.then(() => { this.map.setFillOpacity(factor); });
+    });
+    bar.append(toggle.root, opacity.root);
     toggle.apply();
+    opacity.apply();
     // The sheet floats over the map's left edge above phone width: keep the county out from under it.
     const floating = window.matchMedia(FLOATING_SHEET_QUERY);
     const inset = (): void => {
