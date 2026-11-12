@@ -18,6 +18,40 @@
   left: var(--sheet-edge);
 }
 
+.stage-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage[data-view="table"] .opacity-ctl {
+  display: none; /* nothing to make transparent */
+}
+
+.opacity-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: var(--surface);
+  border-radius: 999px;
+  box-shadow: var(--shadow-pill);
+  font-weight: 600;
+  font-size: 0.93rem;
+  color: var(--ink);
+}
+
+.opacity-ctl input {
+  width: 96px;
+  accent-color: var(--ink);
+}
+
+.opacity-ctl output {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .view-toggle {
   display: inline-flex;
   gap: 4px;
@@ -197,6 +231,10 @@ table.areas td.note {
 }
 
 @media (pointer: coarse) {
+  .opacity-ctl {
+    min-height: 44px;
+  }
+
   .view-toggle button {
     min-height: 44px;
     padding: 6px 18px;
@@ -218,6 +256,8 @@ table.areas td.note {
   .stage-bar {
     top: 8px;
     left: 8px;
+    right: 8px;
+    flex-wrap: wrap; /* the opacity slider drops below the view switch on narrow screens */
   }
 
   .stage[data-view="table"] .table-pane {

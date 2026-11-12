@@ -9,6 +9,29 @@ A map of Franklin County precinct election results. You can view results by prec
 - **Map:** `http://<server>:8000/` (or the port set in `PRECINCTMAP_PORT`). Anyone with the link can use it; there is no login.
 - **Add an election:** `http://<server>:8000/admin`. This needs the admin login.
 
+## Contents
+
+- [What it is](#what-it-is)
+- [Using the map](#using-the-map)
+- [Adding an election (admin)](#adding-an-election-admin)
+- [For the administrator](#for-the-administrator)
+- [How it works](#how-it-works)
+- [Project layout](#project-layout)
+- [Development](#development)
+- [API](#api)
+- [Privacy](#privacy)
+- [More documentation](#more-documentation)
+- [License](#license)
+
+## What it is
+
+precinctmap is an open-source election results toolkit and map app, in one repository:
+
+1. **The `precinctmap` library** (`src/precinctmap/`) ingests messy results spreadsheets, catalogs elections, versions precinct and other boundaries by election date, and aggregates or allocates precinct results to other geographies.
+2. **The results map app** (`app/`) lets staff of civic and nonpartisan organizations pick a year, election, contest and geography and see the results mapped, with tooltips, a detail panel, a table and export.
+
+The app is a thin layer over the library. All data logic lives in `src/precinctmap/`; the API and the web client never reimplement joins or allocation. Scope starts with Franklin County, Ohio.
+
 ## Using the map
 
 1. **Pick what to see** in the panel on the left, from top to bottom:
@@ -29,8 +52,9 @@ A map of Franklin County precinct election results. You can view results by prec
 3. **Hover** over an area for its name, the value, and the number of votes.
 4. **Click** an area for the full breakdown: every choice's votes and share, turnout, and the precincts it was built from. The panel also names the official file the numbers come from.
 5. **See it as a table** with the **Map / Table / Map and table** switch above the map. On a wide screen the table sits beside the map by default. It lists every area with the mapped value, the number of votes (or parcels) behind it, and notes such as "fewer than 25 votes". Click a column heading to sort, and again to reverse. Areas with no value always sort last. Click an area's name to open its breakdown.
-6. **Share a view** by copying the page address. It records everything you picked.
-7. **Export** from the bottom of the left panel. **CSV (this measure only)** holds just what is on the map: one row per area with the mapped value, as a number and as displayed, the votes or parcels behind it, notes and the source file. The other links export everything for the view: every choice's votes (CSV or GeoJSON, for mapping software), or every property or census measure for the geography.
+6. **Adjust the map's opacity** with the **Map opacity** slider beside the view switch (20% to 100%). Lower values let the basemap's streets and labels show through the colors. It affects the colored areas only and is remembered in your browser.
+7. **Share a view** by copying the page address. It records everything you picked.
+8. **Export** from the bottom of the left panel. **CSV (this measure only)** holds just what is on the map: one row per area with the mapped value, as a number and as displayed, the votes or parcels behind it, notes and the source file. The other links export everything for the view: every choice's votes (CSV or GeoJSON, for mapping software), or every property or census measure for the geography.
 
 ### Residential property
 
@@ -211,6 +235,133 @@ scripts/check.sh   # lint, type checks, Python and web tests, production build
 The golden tests compare the database with the Board of Elections' published county totals. They run only when a local database exists and the app is stopped.
 
 To contribute, start with `CONTRIBUTING.md`. Developer notes are in `CLAUDE.md` and `project-docs/`. Status and next steps are in `NOTES.md`.
+
+## How it works
+
+Everything flows one way, and every displayed number traces back through `geo_results` to `precinct_results` to a `source_files` row (the original spreadsheet, identified by sha256).
+
+```
+results .xlsx ──► ingest (adapter per layout) ──► staging + review report ──► commit
+                                                                                │
+boundaries (config/boundaries.toml) ──► registry + precinct crosswalks ─────────┤
+                                                                                ▼
+                                         aggregate (exact, else block-population allocation)
+                                                                                ▼
+                                       DuckDB store ──► FastAPI (app/api) ──► MapLibre client (app/web)
+```
+
+### Principles
+
+1. **Never drop rows silently.** Every join, filter or dedupe reports rows in, rows out and why. Unmatched precincts go to a log table.
+2. **Every geography is tied to an election date.** Boundary lookups pick the set whose validity window covers the election date; there is no "current boundaries" default. Precincts are keyed by normalized name (`BEXLEY 1-A` → `BEXLEY 01-A`), never by the BOE's row-ordinal precinct code.
+3. **Prefer exact aggregation over allocation.** A precinct that nests in a target unit (one unit holds at least 99% of its block population) is aggregated exactly. Only precincts that split are allocated, weighted by 2020 census block population, falling back to area (and logging it) where a piece has no population. Every output row records `method`, `split_share` and `weight_basis`.
+4. **Totals must reconcile.** After aggregation, totals across features equal source totals minus explicitly logged exclusions. This is asserted, not hoped for.
+5. **Ingest is staged, never blind.** Uploads go to staging. The review report lists the detected election, contests and choices, the precinct match rate, unmatched precincts and a check against any county-total row. Nothing commits until the admin approves. Re-ingesting the same sha256 is a no-op; a corrected file replaces its predecessor and logs it.
+6. **Fail loudly on bad input.** Unknown layouts raise a specific error; they never get a best guess. Adapters are written only from real samples.
+7. **Nonpartisan map.** Colorblind-safe palettes, never party red and blue; areas with fewer than 25 votes are hatched.
+
+### Geographies
+
+| Geography | How it is built |
+| --- | --- |
+| Precinct | The native unit, from the BOE precinct file. |
+| Ward | Precincts dissolved by name prefix including the ward number. Always exact. |
+| City, village, township | Exact by precinct name prefix, so the map has no holes. Villages with no precincts of their own are allocated from their host township precinct. |
+| Columbus council district | Only precincts inside Columbus count; the rest render "not in Columbus". Earlier elections use the current map retroactively and are labeled so. |
+| ZIP code area | Census ZCTA5 polygons. Most precincts split across them, so most rows are allocated. |
+| Ohio House and Senate district | Census TIGER districts clipped to Franklin County, with dated vintages by election date. |
+
+Boundary sets, their validity windows and their derivation live in `config/boundaries.toml`. Details and decisions are in `CLAUDE.md`.
+
+### Stack
+
+- **Library:** Python 3.12, pandas, GeoPandas, Shapely 2, pyogrio, openpyxl/calamine, DuckDB with the `spatial` extension. GeoParquet for boundary interchange.
+- **Store:** one DuckDB file (`data/precinctmap.duckdb`) holds the catalog, results and boundaries. Optional BigQuery sync; the app never queries BigQuery at request time.
+- **API:** FastAPI, Uvicorn, Pydantic.
+- **Web:** Vite, TypeScript, MapLibre GL JS. The basemap is no-tracking (OpenFreeMap or self-hosted Protomaps); no Google or Mapbox keys.
+- **Tooling:** uv, ruff, mypy, pytest; pnpm, eslint, tsc, vitest. Docker Compose for deployment.
+
+## Project layout
+
+```
+src/precinctmap/
+  ingest/      one adapter per source format and vintage; format detection; staging
+  catalog/     elections, source files, contests, choices; DuckDB schema and migrations
+  registry/    boundary sets by geography and vintage; precinct crosswalks; land area
+  aggregate/   exact aggregation and population-weighted allocation; materialized results
+  parcels/     residential property layer and area statistics
+  census/      ACS demographics allocated to every geography
+  bundle/      data release export and load
+  serve/       query layer behind the API
+  io/          DuckDB, GeoParquet, BigQuery readers and writers
+  cli.py
+app/
+  api/         FastAPI: read endpoints and admin ingest endpoints
+  web/         Vite + TypeScript + MapLibre client (map page and /admin)
+config/        boundaries.toml: the boundary registry, reviewed in git
+scripts/       check.sh (CI gate), update-data.sh, TIGER download, official-totals extraction
+tests/         fixtures/ (tiny synthetic files) and golden/ (certified county totals)
+project-docs/  method notes: census.md, palette.md, phase0-survey.md
+data/          gitignored: raw/, staging/, boundaries/, samples/, precinctmap.duckdb
+```
+
+## Development
+
+Requires Linux or macOS (WSL2 works), [uv](https://docs.astral.sh/uv/), Node 22 or newer and optionally Docker.
+
+```bash
+uv sync                                            # Python 3.12 and dependencies
+cp .env.example .env                               # set PRECINCTMAP_ADMIN_PASSWORD (12+ characters)
+cd app/web && corepack pnpm install && cd ../..    # pnpm is pinned; corepack runs it
+
+uv run precinctmap serve --reload                  # API on 127.0.0.1:8000
+cd app/web && corepack pnpm dev                    # web on :5173, proxies /api
+scripts/check.sh                                   # ruff, mypy, pytest, tsc, eslint, vitest, build
+```
+
+Common library commands:
+
+```bash
+uv run precinctmap boundaries load                 # make the store match config/boundaries.toml
+uv run precinctmap ingest <file>.xlsx --review     # stage a file and print the review report
+uv run precinctmap ingest --commit <staging_id>    # commit a reviewed batch
+uv run precinctmap catalog                         # list elections
+uv run precinctmap aggregate run                   # rebuild geo_results and assert reconciliation
+uv run precinctmap bundle export --out dist        # data release
+```
+
+Tests use small synthetic fixtures, so most of them run with no data. Golden tests compare the store with the Board of Elections' certified county totals and skip when no local store exists. Mark BigQuery tests `@pytest.mark.bq`. The full command list is in `CLAUDE.md`.
+
+## API
+
+Geometry and results are separate, so changing the contest doesn't refetch geometry. The client joins them by `feature_id` through MapLibre feature-state.
+
+| Endpoint | Returns |
+| --- | --- |
+| `GET /api/catalog` | Years, elections, contests with choices, geographies that have results. |
+| `GET /api/geo/{geography}?date=` | Simplified GeoJSON (ETag, gzip), keyed by `feature_id`. |
+| `GET /api/results?election=&contest=&geography=` | Compact per-feature votes, method, precinct counts, plus totals and notes. |
+| `GET /api/results/detail?...&feature=` | Votes and shares, contributing precincts with split shares, source file and sha256. |
+| `GET /api/turnout`, `/api/property`, `/api/census` | The same shape for turnout, residential property and census measures, each with `/detail` and `/export.csv`. |
+| `GET /api/export.csv`, `/api/export.geojson` | Every choice for a view. |
+| `POST /api/ingest`, `GET /api/ingest/{staging_id}`, `POST /api/ingest/{staging_id}/commit` | Admin staging, review and commit. Needs login. |
+
+The map is public. Only `/admin` and `/api/ingest/*` need a login: HTTP Basic from `PRECINCTMAP_ADMIN_USER` and `PRECINCTMAP_ADMIN_PASSWORD`, failing closed on a missing or placeholder password. Unsafe methods also require the `X-PRECINCTMAP-Admin: 1` header (CSRF guard). Put HTTPS in front before exposing it.
+
+## Privacy
+
+- The voter file is read only as a de-identified address-to-precinct and council-district table. Names, voter IDs, birth dates, party, registration dates, vote history and per-address voter counts are never read, stored, logged or shown.
+- Auditor owner names and mailing addresses are dropped when the parcel file is read. Only derived booleans such as "likely rental" are stored.
+- Census values describe areas, not people.
+- Test fixtures are synthetic, and `data/` is gitignored. Never commit `.env`, keys or tokens; Google Cloud access uses Application Default Credentials.
+
+## More documentation
+
+- `CONTRIBUTING.md`: setup, quality gates, adding a results adapter, what must never be committed.
+- `CLAUDE.md`: the full data model, data rules, geography decisions and app behavior.
+- `project-docs/census.md`: census measures and method. `project-docs/palette.md`: palettes and their validation. `project-docs/phase0-survey.md`: the original data survey.
+- `NOTES.md`: status and next steps.
+- `DATA.md` (inside each data release): every dataset's vintage, publisher, update location and terms.
 
 ## License
 

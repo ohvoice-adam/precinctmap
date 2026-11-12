@@ -35,12 +35,12 @@ export function fillColor(binColors: string[]): ExpressionSpecification {
   ];
 }
 
-export const FILL_OPACITY: ExpressionSpecification = [
-  "case",
-  ["==", ["feature-state", "status"], "low"],
-  0.45,
-  0.88,
-];
+/** Area fill opacity; `factor` (0-1) scales the normal look, so 1 is the default map. */
+export function fillOpacity(factor = 1): ExpressionSpecification {
+  return ["case", ["==", ["feature-state", "status"], "low"], 0.45 * factor, 0.88 * factor];
+}
+
+export const FILL_OPACITY = fillOpacity();
 
 export const HATCH_OPACITY: ExpressionSpecification = [
   "case",
